@@ -1,0 +1,213 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Main background gradient: deep blue-to-sky -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="50%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+
+    <!-- Subtle inner glow overlay -->
+    <radialGradient id="glow" cx="40%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Card surface gradient -->
+    <linearGradient id="card" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#e0f2fe" stop-opacity="1"/>
+    </linearGradient>
+
+    <!-- Card shadow filter -->
+    <filter id="cardshadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="12" stdDeviation="20" flood-color="#1e40af" flood-opacity="0.35"/>
+    </filter>
+
+    <!-- Soft glow filter for dots -->
+    <filter id="dotglow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Rounded rect clip for icon shape -->
+    <clipPath id="iconclip">
+      <rect width="1024" height="1024" rx="230" ry="230"/>
+    </clipPath>
+  </defs>
+
+  <!-- Icon background -->
+  <g clip-path="url(#iconclip)">
+    <!-- Base gradient fill -->
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+
+    <!-- Subtle noise / depth layer -->
+    <rect width="1024" height="1024" fill="url(#glow)"/>
+
+    <!-- Decorative background grid dots (very subtle) -->
+    <g opacity="0.09" fill="#ffffff">
+      <!-- row 1 -->
+      <circle cx="160" cy="220" r="8"/>
+      <circle cx="310" cy="220" r="8"/>
+      <circle cx="460" cy="220" r="8"/>
+      <circle cx="610" cy="220" r="8"/>
+      <circle cx="760" cy="220" r="8"/>
+      <circle cx="864" cy="220" r="8"/>
+      <!-- row 2 -->
+      <circle cx="160" cy="360" r="8"/>
+      <circle cx="310" cy="360" r="8"/>
+      <circle cx="460" cy="360" r="8"/>
+      <circle cx="610" cy="360" r="8"/>
+      <circle cx="760" cy="360" r="8"/>
+      <circle cx="864" cy="360" r="8"/>
+      <!-- row 3 -->
+      <circle cx="160" cy="500" r="8"/>
+      <circle cx="310" cy="500" r="8"/>
+      <circle cx="460" cy="500" r="8"/>
+      <circle cx="610" cy="500" r="8"/>
+      <circle cx="760" cy="500" r="8"/>
+      <circle cx="864" cy="500" r="8"/>
+      <!-- row 4 -->
+      <circle cx="160" cy="640" r="8"/>
+      <circle cx="310" cy="640" r="8"/>
+      <circle cx="460" cy="640" r="8"/>
+      <circle cx="610" cy="640" r="8"/>
+      <circle cx="760" cy="640" r="8"/>
+      <circle cx="864" cy="640" r="8"/>
+      <!-- row 5 -->
+      <circle cx="160" cy="780" r="8"/>
+      <circle cx="310" cy="780" r="8"/>
+      <circle cx="460" cy="780" r="8"/>
+      <circle cx="610" cy="780" r="8"/>
+      <circle cx="760" cy="780" r="8"/>
+      <circle cx="864" cy="780" r="8"/>
+    </g>
+
+    <!-- Main calendar card -->
+    <rect x="140" y="180" width="744" height="640" rx="52" ry="52"
+          fill="url(#card)" filter="url(#cardshadow)"/>
+
+    <!-- Calendar header bar (blue) -->
+    <rect x="140" y="180" width="744" height="158" rx="52" ry="52" fill="#3b82f6"/>
+    <!-- Cover the bottom corners of the header to make it flat-bottom -->
+    <rect x="140" y="286" width="744" height="54" fill="#3b82f6"/>
+
+    <!-- Header month label: stylized horizontal bars (like text) -->
+    <!-- Large "S" mark / calendar page corner rings -->
+    <circle cx="286" cy="175" r="26" fill="#2563eb"/>
+    <circle cx="286" cy="175" r="14" fill="white"/>
+
+    <circle cx="738" cy="175" r="26" fill="#2563eb"/>
+    <circle cx="738" cy="175" r="14" fill="white"/>
+
+    <!-- Header: month indicator bars -->
+    <rect x="220" y="228" width="200" height="22" rx="11" fill="white" opacity="0.95"/>
+    <rect x="220" y="262" width="130" height="16" rx="8" fill="white" opacity="0.45"/>
+
+    <!-- Header right: today pill -->
+    <rect x="630" y="224" width="120" height="40" rx="20" fill="white" opacity="0.2"/>
+    <rect x="654" y="236" width="72" height="16" rx="8" fill="white" opacity="0.8"/>
+
+    <!-- Calendar grid area -->
+    <!-- Day of week row: 7 dots -->
+    <g fill="#94a3b8" font-family="system-ui" opacity="0.7">
+      <rect x="182" y="368" width="60" height="10" rx="5" fill="#cbd5e1"/>
+      <rect x="278" y="368" width="60" height="10" rx="5" fill="#cbd5e1"/>
+      <rect x="374" y="368" width="60" height="10" rx="5" fill="#cbd5e1"/>
+      <rect x="470" y="368" width="60" height="10" rx="5" fill="#cbd5e1"/>
+      <rect x="566" y="368" width="60" height="10" rx="5" fill="#cbd5e1"/>
+      <rect x="662" y="368" width="60" height="10" rx="5" fill="#cbd5e1"/>
+      <rect x="758" y="368" width="60" height="10" rx="5" fill="#cbd5e1"/>
+    </g>
+
+    <!-- Calendar date grid: 5 rows × 7 cols -->
+    <!-- Row 1 (empty start, then 1-5) -->
+    <!-- col positions: 182, 278, 374, 470, 566, 662, 758 -->
+    <!-- row y positions: 414, 482, 550, 618, 686 -->
+
+    <!-- Row 1 -->
+    <rect x="374" y="406" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="470" y="406" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="566" y="406" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="662" y="406" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="758" y="406" width="60" height="52" rx="14" fill="#f1f5f9"/>
+
+    <!-- Row 2 -->
+    <rect x="182" y="474" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="278" y="474" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="374" y="474" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <!-- TODAY cell — highlighted -->
+    <rect x="470" y="474" width="60" height="52" rx="14" fill="url(#bg)"/>
+    <rect x="566" y="474" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="662" y="474" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="758" y="474" width="60" height="52" rx="14" fill="#f1f5f9"/>
+
+    <!-- Row 3 -->
+    <rect x="182" y="542" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <!-- Shift day: open shift pill -->
+    <rect x="278" y="542" width="60" height="52" rx="14" fill="#eff6ff"/>
+    <rect x="374" y="542" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="470" y="542" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="566" y="542" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <!-- Another shift day -->
+    <rect x="662" y="542" width="60" height="52" rx="14" fill="#eff6ff"/>
+    <rect x="758" y="542" width="60" height="52" rx="14" fill="#f1f5f9"/>
+
+    <!-- Row 4 -->
+    <rect x="182" y="610" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="278" y="610" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="374" y="610" width="60" height="52" rx="14" fill="#eff6ff"/>
+    <rect x="470" y="610" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="566" y="610" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="662" y="610" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="758" y="610" width="60" height="52" rx="14" fill="#eff6ff"/>
+
+    <!-- Row 5 -->
+    <rect x="182" y="678" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="278" y="678" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="374" y="678" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="470" y="678" width="60" height="52" rx="14" fill="#eff6ff"/>
+    <rect x="566" y="678" width="60" height="52" rx="14" fill="#f1f5f9"/>
+    <rect x="662" y="678" width="60" height="52" rx="14" fill="#f1f5f9"/>
+
+    <!-- Date numbers: simplified as small rects -->
+    <!-- Row 1 numbers -->
+    <rect x="392" y="420" width="24" height="10" rx="5" fill="#94a3b8"/>
+    <rect x="488" y="420" width="24" height="10" rx="5" fill="#94a3b8"/>
+    <rect x="584" y="420" width="24" height="10" rx="5" fill="#94a3b8"/>
+    <rect x="680" y="420" width="24" height="10" rx="5" fill="#94a3b8"/>
+    <rect x="776" y="420" width="24" height="10" rx="5" fill="#94a3b8"/>
+
+    <!-- Row 2 numbers -->
+    <rect x="200" y="488" width="24" height="10" rx="5" fill="#94a3b8"/>
+    <rect x="296" y="488" width="24" height="10" rx="5" fill="#94a3b8"/>
+    <rect x="392" y="488" width="24" height="10" rx="5" fill="#94a3b8"/>
+    <!-- Today number: white on blue -->
+    <rect x="488" y="488" width="24" height="10" rx="5" fill="white" opacity="0.9"/>
+    <rect x="584" y="488" width="24" height="10" rx="5" fill="#94a3b8"/>
+    <rect x="680" y="488" width="24" height="10" rx="5" fill="#94a3b8"/>
+    <rect x="776" y="488" width="24" height="10" rx="5" fill="#94a3b8"/>
+
+    <!-- Shift time pills on shift days -->
+    <!-- Row 3 shift badge on col 2 -->
+    <rect x="284" y="556" width="48" height="14" rx="7" fill="#3b82f6" opacity="0.85"/>
+    <!-- Row 3 shift badge on col 6 -->
+    <rect x="668" y="556" width="48" height="14" rx="7" fill="#0ea5e9" opacity="0.85"/>
+    <!-- Row 4 shift badge on col 3 -->
+    <rect x="380" y="624" width="48" height="14" rx="7" fill="#3b82f6" opacity="0.85"/>
+    <!-- Row 4 shift badge on col 7 -->
+    <rect x="764" y="624" width="48" height="14" rx="7" fill="#0ea5e9" opacity="0.85"/>
+    <!-- Row 5 shift badge on col 4 -->
+    <rect x="476" y="692" width="48" height="14" rx="7" fill="#3b82f6" opacity="0.85"/>
+
+    <!-- Event dots on a few cells -->
+    <circle cx="212" cy="510" r="5" fill="#34d399" filter="url(#dotglow)"/>
+    <circle cx="404" cy="510" r="5" fill="#fbbf24" filter="url(#dotglow)"/>
+    <circle cx="692" cy="510" r="5" fill="#34d399" filter="url(#dotglow)"/>
+    <circle cx="212" cy="578" r="5" fill="#fbbf24" filter="url(#dotglow)"/>
+    <circle cx="500" cy="578" r="5" fill="#34d399" filter="url(#dotglow)"/>
+
+    <!-- Bottom shine line on card -->
+    <rect x="240" y="800" width="544" height="3" rx="1.5" fill="#3b82f6" opacity="0.12"/>
+  </g>
+</svg>

@@ -2,326 +2,856 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Shift Planner</title>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap');
+
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-:root {
-  --bg: #09090c;
-  --sf: #101318;
-  --s2: #161a22;
-  --bd: #1c2030;
-  --tx: #e2e5ef;
-  --dm: #58616f;
-  --c:  #e03128;
-  --sans: 'Geist', sans-serif;
+
+/* ═══ DESIGN TOKENS ═══ */
+:root, [data-theme="dark"] {
+  /* Base surfaces — blue-tinted dark, not pure black */
+  --bg:    #0d0f14;
+  --sf:    #13161e;
+  --s2:    #1a1e29;
+  --s3:    #222736;
+  --bd:    #2a2f3d;
+  --bd2:   #343a4d;
+  /* Text */
+  --tx:    #eef0f6;
+  --tx2:   #9aa0b8;
+  --tx3:   #555d78;
+  /* Brand — indigo/violet, not red */
+  --c:     #3b82f6;          /* blue-500 */
+  --c-d:   #2563eb;          /* blue-600 */
+  --c-g:   linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+  /* Status */
+  --green: #34d399;
+  --amber: #fbbf24;
+  --rose:  #fb7185;
+  --teal:  #2dd4bf;
+  --sky:   #38bdf8;
+  /* Fonts */
+  --sans: 'Geist', -apple-system, sans-serif;
   --mono: 'Geist Mono', monospace;
+  /* Radii */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 28px;
+  /* Shadows */
+  --sh-sm: 0 2px 8px rgba(0,0,0,.3);
+  --sh-md: 0 8px 24px rgba(0,0,0,.4);
+  --sh-lg: 0 20px 60px rgba(0,0,0,.5);
 }
-html, body { height: 100%; background: var(--bg); }
+
+[data-theme="light"] {
+  --bg:    #f0f2f8;
+  --sf:    #ffffff;
+  --s2:    #f5f6fa;
+  --s3:    #eceef5;
+  --bd:    #dde0ee;
+  --bd2:   #c8ccdf;
+  --tx:    #0e1120;
+  --tx2:   #5a6080;
+  --tx3:   #9aa0b8;
+  --c:     #3b82f6;
+  --c-d:   #2563eb;
+  --c-g:   linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+  --sh-sm: 0 2px 8px rgba(59,130,246,.08);
+  --sh-md: 0 8px 24px rgba(59,130,246,.12);
+  --sh-lg: 0 20px 60px rgba(0,0,0,.1);
+}
+
+/* ═══ BASE ═══ */
+html {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+}
 body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
   font-family: var(--sans);
   color: var(--tx);
   font-size: 15px;
   display: flex;
   justify-content: center;
   padding-bottom: env(safe-area-inset-bottom);
+  background: var(--bg);
+  /* Prevent iOS rubber-band on body */
+  position: fixed;
+  width: 100%;
 }
-.app { width: 100%; max-width: 430px; min-height: 100vh; display: flex; flex-direction: column; }
+.app {
+  width: 100%;
+  max-width: 430px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
 
-/* HEADER */
-.hd { padding: 44px 20px 8px; }
-.hd-eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--c); margin-bottom: 6px; }
-.hd-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
-.hd-title { font-size: 24px; font-weight: 700; letter-spacing: -.4px; line-height: 1; }
+/* Main scrollable content area — only .page scrolls */
+.page {
+  padding: 10px 16px 100px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Sheet body scroll */
+.sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 0 50px;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Modal scroll */
+.modal {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Builder (settings body) */
+.builder {
+  padding: 14px 16px 100px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent tap highlight and double-tap zoom on all interactive elements */
+button, [data-date], [data-pick], [data-block], [data-tblock],
+[data-variant], [data-tvariant], [data-tpick], .cell, .event,
+.tl-row, .preset, .shift-chip, .variant-chip, .vs-btn, .nav-btn,
+.tool-btn, .bulk-chip, .cat-pick, .recur-pick, .import-tab,
+.ip-btn, .today-arrow, .today-jump, .next-up-card, .shift-badge {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Inputs/textareas still need default touch behavior */
+input, textarea, select {
+  touch-action: auto;
+  user-select: text;
+  -webkit-user-select: text;
+  font-size: 16px; /* prevents iOS auto-zoom on focus */
+}
+
+/* Horizontal chip rows — scroll but no zoom */
+.shift-chips, .variant-row, .bulk-shift-row,
+.template-tabs, .legend, .cat-breakdown {
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+.shift-chips::-webkit-scrollbar,
+.variant-row::-webkit-scrollbar,
+.bulk-shift-row::-webkit-scrollbar,
+.legend::-webkit-scrollbar,
+.cat-breakdown::-webkit-scrollbar { display: none; }
+
+/* ═══ HEADER ═══ */
+.hd {
+  padding: 52px 22px 10px;
+  position: relative;
+}
+.hd-eyebrow {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .18em;
+  text-transform: uppercase;
+  background: var(--c-g); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px; display: inline-block;
+}
+.hd-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.hd-title { font-size: 26px; font-weight: 800; letter-spacing: -.6px; line-height: 1; }
 .month-nav { display: flex; align-items: center; gap: 5px; }
 .nav-btn {
-  width: 30px; height: 30px; border-radius: 7px;
-  background: var(--sf); border: 1px solid var(--bd); color: var(--tx);
-  font-size: 13px; cursor: pointer;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--sf); border: 1px solid var(--bd);
+  color: var(--tx2); font-size: 14px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--sh-sm);
+  transition: all .15s;
 }
-.nav-btn:active { background: var(--s2); }
-.nav-today { width: auto; padding: 0 10px; font-size: 9px; font-family: var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+.nav-btn:active { background: var(--s2); transform: scale(.92); }
+.nav-today {
+  width: auto; padding: 0 12px; border-radius: 999px;
+  font-size: 9px; font-family: var(--mono);
+  letter-spacing: .12em; text-transform: uppercase;
+  font-weight: 600; color: var(--c);
+  border-color: var(--c); background: rgba(59,130,246,.08);
+}
 
-.tool-row { display: flex; gap: 6px; padding: 8px 16px 6px; }
+/* ═══ TOOL ROW ═══ */
+.tool-row { display: flex; gap: 6px; padding: 6px 16px 4px; }
 .tool-btn {
-  flex: 1; background: var(--sf); border: 1px solid var(--bd); color: var(--tx);
-  border-radius: 8px; padding: 8px;
-  font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase;
-  font-weight: 500; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 6px;
+  flex: 1; background: var(--sf); border: 1px solid var(--bd); color: var(--tx2);
+  border-radius: var(--r-sm); padding: 9px 8px;
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .07em; text-transform: uppercase;
+  font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  box-shadow: var(--sh-sm); transition: all .15s;
 }
-.tool-btn:active { background: var(--s2); }
-.tool-btn .ic { font-size: 13px; }
+.tool-btn:active { background: var(--s2); transform: scale(.97); }
+.tool-btn .ic { font-size: 12px; }
 
-/* PAGE */
-.page { padding: 8px 16px 100px; }
-.month-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
-.stat { background: var(--sf); border: 1px solid var(--bd); border-radius: 10px; padding: 11px; }
-.stat-val { font-size: 18px; font-weight: 700; letter-spacing: -.3px; line-height: 1; margin-bottom: 3px; }
-.stat-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--dm); }
+/* ═══ VIEW SWITCHER ═══ */
+.view-switcher {
+  display: flex; gap: 3px; padding: 3px;
+  margin: 8px 16px 6px;
+  background: var(--sf); border: 1px solid var(--bd);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-sm);
+}
+.vs-btn {
+  flex: 1; background: transparent; border: none;
+  color: var(--tx3); padding: 9px 4px; border-radius: 12px;
+  font-family: var(--sans); font-size: 12px; font-weight: 600;
+  letter-spacing: -.1px; cursor: pointer;
+  transition: all .2s;
+}
+.vs-btn.on {
+  background: var(--c-g); color: #fff;
+  box-shadow: 0 2px 10px rgba(59,130,246,.35);
+}
 
-/* CALENDAR */
-.cal-wrap { background: var(--sf); border: 1px solid var(--bd); border-radius: 14px; padding: 12px; margin-bottom: 14px; }
-.cal-dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 8px; }
-.dow { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--dm); text-align: center; padding: 4px 0; }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+/* ═══ PAGE ═══ */
+/* ═══ MONTH STATS ═══ */
+.month-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.stat {
+  background: var(--sf); border: 1px solid var(--bd); border-radius: var(--r-md);
+  padding: 14px 12px; box-shadow: var(--sh-sm); position: relative; overflow: hidden;
+}
+.stat::before {
+  content: ''; position: absolute; inset: 0;
+  background: var(--c-g); opacity: .03; pointer-events: none;
+}
+.stat-val {
+  font-size: 22px; font-weight: 800; letter-spacing: -.5px;
+  line-height: 1; margin-bottom: 5px;
+  background: var(--c-g); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.stat-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
+
+/* ═══ CALENDAR ═══ */
+.cal-wrap {
+  background: var(--sf); border: 1px solid var(--bd);
+  border-radius: var(--r-lg); padding: 16px; margin-bottom: 12px;
+  box-shadow: var(--sh-md);
+}
+.cal-dow { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 10px; }
+.dow { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--tx3); text-align: center; padding: 4px 0; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
 .cell {
-  aspect-ratio: 1; background: var(--s2); border: 1px solid transparent;
-  border-radius: 8px; padding: 4px; cursor: pointer;
+  aspect-ratio: 1; background: var(--s2); border: 1.5px solid transparent;
+  border-radius: var(--r-sm); padding: 4px 5px; cursor: pointer;
   display: flex; flex-direction: column; position: relative;
-  transition: transform .1s, background .15s;
-  user-select: none;
+  transition: all .15s; user-select: none;
 }
 .cell.empty { background: transparent; cursor: default; }
-.cell:not(.empty):active { transform: scale(.95); border-color: var(--dm); }
-.cell.today { border: 1.5px solid var(--c); }
-.cell.bulk-selected { background: rgba(224,49,40,.18); border: 1.5px solid var(--c); }
-.cell-num { font-family: var(--mono); font-size: 11px; font-weight: 500; line-height: 1; }
-.cell.today .cell-num { color: var(--c); font-weight: 700; }
-.cell-shift { position: absolute; top: 3px; right: 3px; font-size: 8px; font-family: var(--mono); font-weight: 700; padding: 1px 4px; border-radius: 4px; line-height: 1.2; color: #000; }
-.cell-dots { position: absolute; bottom: 4px; left: 4px; right: 4px; display: flex; gap: 2px; flex-wrap: wrap; }
+.cell:not(.empty):hover { background: var(--s3); border-color: var(--bd); }
+.cell:not(.empty):active { transform: scale(.9); }
+.cell.today {
+  background: rgba(59,130,246,.12);
+  border-color: var(--c);
+  box-shadow: 0 0 0 2px rgba(59,130,246,.15);
+}
+.cell.bulk-selected {
+  background: rgba(59,130,246,.2);
+  border-color: var(--c);
+  box-shadow: 0 0 0 2px rgba(59,130,246,.25);
+}
+.cell-num { font-family: var(--mono); font-size: 11px; font-weight: 600; line-height: 1; color: var(--tx2); }
+.cell.today .cell-num { color: var(--c); font-weight: 800; }
+.cell-shift {
+  position: absolute; top: 3px; right: 3px;
+  font-size: 7.5px; font-family: var(--mono); font-weight: 700;
+  padding: 1px 4px; border-radius: 999px; line-height: 1.4; color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,.3);
+}
+.cell-dots { position: absolute; bottom: 4px; right: 4px; display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end; max-width: 60%; }
 .dot { width: 5px; height: 5px; border-radius: 50%; }
-.cell-note-mark { position: absolute; bottom: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%; background: var(--c); opacity: .8; }
+.cell-note-mark { position: absolute; bottom: 4px; right: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--c); }
 
-.legend { display: flex; flex-wrap: wrap; gap: 8px 10px; padding: 4px 6px 4px; }
-.legend-item { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 9px; color: var(--dm); letter-spacing: .05em; text-transform: uppercase; }
-.legend-pill { width: 16px; height: 9px; border-radius: 3px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 12px; padding: 6px 4px 8px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 9px; color: var(--tx3); letter-spacing: .05em; text-transform: uppercase; }
+.legend-pill { width: 18px; height: 6px; border-radius: 999px; }
 
-/* BULK MODE BAR */
+/* ═══ BULK BAR ═══ */
 .bulk-bar {
-  display: none; position: fixed; bottom: 16px; left: 16px; right: 16px;
+  display: none; position: fixed; bottom: 20px; left: 16px; right: 16px;
   max-width: 398px; margin: 0 auto;
-  background: var(--c); border-radius: 12px;
-  padding: 12px 14px; z-index: 50;
-  box-shadow: 0 8px 24px rgba(0,0,0,.4);
-  flex-direction: column; gap: 8px;
+  background: var(--c-g);
+  border-radius: var(--r-lg); padding: 14px 16px; z-index: 50;
+  box-shadow: var(--sh-lg);
+  flex-direction: column; gap: 10px;
 }
 .bulk-bar.on { display: flex; }
-.bulk-bar-top { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; color: #fff; }
-.bulk-bar-cancel { background: rgba(0,0,0,.3); border: none; color: #fff; padding: 5px 10px; border-radius: 6px; font-family: var(--mono); font-size: 10px; cursor: pointer; letter-spacing: .05em; text-transform: uppercase; }
-.bulk-shift-row { display: flex; gap: 4px; flex-wrap: wrap; }
-.bulk-chip {
-  background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.2);
-  color: #fff; padding: 6px 10px; border-radius: 6px;
-  font-family: var(--mono); font-size: 10px; font-weight: 600;
-  letter-spacing: .04em; cursor: pointer; flex: 1; min-width: 60px;
-}
-.bulk-chip:active { background: rgba(0,0,0,.5); }
-.bulk-chip.clear-chip { background: rgba(0,0,0,.5); }
+.bulk-bar-top { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; color: #fff; }
+.bulk-bar-cancel { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25); color: #fff; padding: 5px 12px; border-radius: 999px; font-family: var(--mono); font-size: 10px; cursor: pointer; letter-spacing: .05em; text-transform: uppercase; font-weight: 600; }
+.bulk-shift-row { display: flex; gap: 5px; flex-wrap: wrap; }
+.bulk-chip { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2); color: #fff; padding: 7px 12px; border-radius: 999px; font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .04em; cursor: pointer; flex: 1; min-width: 60px; transition: background .12s; }
+.bulk-chip:active { background: rgba(255,255,255,.3); }
+.bulk-chip.clear-chip { background: rgba(255,255,255,.08); }
 
-/* SHEET */
-.sheet-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 200; align-items: stretch; justify-content: center; animation: fadeIn .2s ease; }
-.sheet-bg.on { display: flex; }
+/* ═══ SHEET (day detail) ═══ */
+.sheet-bg {
+  display: none; position: fixed; inset: 0;
+  background: rgba(6,8,16,.88);
+  backdrop-filter: blur(4px);
+  z-index: 200; align-items: stretch; justify-content: center;
+}
+.sheet-bg.on { display: flex; animation: fadeIn .2s ease; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.sheet { width: 100%; max-width: 430px; background: var(--bg); display: flex; flex-direction: column; overflow: hidden; animation: slideUp .25s ease; }
-@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-.sheet-hd { padding: 44px 20px 8px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-shrink: 0; }
-.sheet-hd-eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--c); margin-bottom: 6px; }
-.sheet-hd-title { font-size: 24px; font-weight: 700; letter-spacing: -.4px; line-height: 1.1; }
-.sheet-close { background: var(--sf); border: 1px solid var(--bd); color: var(--tx); width: 34px; height: 34px; border-radius: 9px; font-size: 15px; cursor: pointer; flex-shrink: 0; }
-.sheet-body { flex: 1; overflow-y: auto; padding: 0 0 40px; }
-
-/* DAY NOTE */
-.day-note {
-  margin: 4px 16px 14px;
-  background: var(--sf); border: 1px solid var(--bd); border-radius: 10px;
-  padding: 10px 12px; display: flex; gap: 8px; align-items: flex-start;
+.sheet {
+  width: 100%; max-width: 430px; background: var(--bg);
+  display: flex; flex-direction: column; overflow: hidden;
+  animation: slideUp .28s cubic-bezier(.32,1,.24,1);
 }
-.day-note-icon { font-size: 13px; color: var(--dm); padding-top: 2px; flex-shrink: 0; }
+@keyframes slideUp { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.sheet-hd {
+  padding: 50px 22px 10px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; flex-shrink: 0;
+}
+.sheet-hd-eyebrow {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .18em;
+  text-transform: uppercase;
+  background: var(--c-g); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; margin-bottom: 4px; display: inline-block;
+}
+.sheet-hd-title { font-size: 26px; font-weight: 800; letter-spacing: -.5px; line-height: 1.1; }
+.sheet-close {
+  background: var(--s2); border: 1px solid var(--bd); color: var(--tx2);
+  width: 34px; height: 34px; border-radius: 50%;
+  font-size: 15px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--sh-sm); transition: all .15s;
+}
+.sheet-close:active { transform: scale(.9); }
+
+/* ═══ DAY NOTE ═══ */
+.day-note {
+  margin: 6px 16px 14px;
+  background: var(--sf); border: 1px solid var(--bd);
+  border-radius: var(--r-md); padding: 12px 14px;
+  display: flex; gap: 10px; align-items: flex-start;
+  box-shadow: var(--sh-sm);
+}
+.day-note-icon { font-size: 14px; color: var(--tx3); padding-top: 1px; flex-shrink: 0; }
 .day-note-input {
   flex: 1; background: transparent; border: none; color: var(--tx);
   font-family: var(--sans); font-size: 13px; resize: none; outline: none;
-  line-height: 1.4; padding: 0; min-height: 18px;
+  line-height: 1.5; padding: 0; min-height: 18px;
 }
-.day-note-input::placeholder { color: var(--dm); }
+.day-note-input::placeholder { color: var(--tx3); }
 
-/* SHIFT CHIPS */
-.shift-chips { display: flex; gap: 5px; padding: 0 16px 12px; flex-wrap: wrap; }
+/* ═══ SHIFT CHIPS ═══ */
+.shift-chips { display: flex; gap: 6px; padding: 0 16px 12px; flex-wrap: wrap; }
 .shift-chip {
-  padding: 7px 11px; border-radius: 8px;
-  font-size: 11px; font-weight: 600; cursor: pointer;
-  font-family: var(--mono); letter-spacing: .06em;
-  border: 1px solid var(--bd); background: var(--sf); color: var(--dm);
-  transition: all .12s;
+  padding: 8px 13px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  font-family: var(--sans); letter-spacing: -.1px;
+  border: 1.5px solid var(--bd); background: var(--sf); color: var(--tx2);
+  box-shadow: var(--sh-sm); transition: all .15s;
+}
+.shift-chip:active { transform: scale(.95); }
+
+/* ═══ SHIFT BADGE ═══ */
+.shift-badge {
+  margin: 0 16px 12px; padding: 8px 16px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  font-weight: 600;
 }
 
-.shift-badge { margin: 0 16px 10px; padding: 6px 14px; border-radius: 8px; display: inline-block; font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
-
-/* VARIANT SUB-ROW */
-.variant-row { display: flex; gap: 5px; padding: 0 16px 14px; align-items: center; flex-wrap: wrap; }
-.variant-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--dm); margin-right: 4px; }
+/* ═══ VARIANT ROW ═══ */
+.variant-row { display: flex; gap: 6px; padding: 0 16px 14px; align-items: center; flex-wrap: wrap; }
+.variant-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--tx3); margin-right: 2px; }
 .variant-chip {
-  padding: 5px 10px; border-radius: 6px;
+  padding: 6px 12px; border-radius: 999px;
   font-size: 11px; font-weight: 600; cursor: pointer;
   font-family: var(--mono); letter-spacing: .04em;
-  border: 1px solid var(--bd); background: var(--s2); color: var(--dm);
-  transition: all .12s;
+  border: 1.5px solid var(--bd); background: var(--s2); color: var(--tx2);
+  transition: all .15s;
+}
+.variant-chip:active { transform: scale(.95); }
+
+/* ═══ NO SHIFT CARD ═══ */
+.no-shift-card {
+  margin: 4px 16px 16px;
+  background: var(--sf); border: 1.5px dashed var(--bd);
+  border-radius: var(--r-md); padding: 24px 16px; text-align: center;
+  box-shadow: var(--sh-sm);
+}
+.no-shift-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; color: var(--tx); }
+.no-shift-sub { font-size: 12px; color: var(--tx3); line-height: 1.5; }
+
+/* ═══ PROGRESS CARD ═══ */
+.day-progress {
+  margin: 0 16px 6px;
+  background: var(--sf); border: 1px solid var(--bd);
+  border-radius: var(--r-md); padding: 14px 16px;
+  box-shadow: var(--sh-sm);
+}
+.dp-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.dp-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--tx3); }
+.dp-val { font-size: 16px; font-weight: 800; letter-spacing: -.3px; color: var(--c); }
+.dp-bar { height: 6px; background: var(--s2); border-radius: 999px; overflow: hidden; }
+.dp-fill {
+  height: 100%; background: var(--c-g); border-radius: 999px;
+  transition: width .4s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 0 8px rgba(59,130,246,.5);
 }
 
-.no-shift-card { margin: 4px 16px 16px; background: var(--sf); border: 1px dashed var(--bd); border-radius: 12px; padding: 14px; text-align: center; }
-.no-shift-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--tx); }
-.no-shift-sub { font-size: 11px; color: var(--dm); }
-
-.day-progress { margin: 0 16px 4px; background: var(--sf); border: 1px solid var(--bd); border-radius: 12px; padding: 11px 14px; }
-.dp-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
-.dp-lbl { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--dm); }
-.dp-val { font-size: 15px; font-weight: 700; letter-spacing: -.2px; }
-.dp-bar { height: 5px; background: var(--s2); border-radius: 3px; overflow: hidden; }
-.dp-fill { height: 100%; background: var(--c); border-radius: 3px; transition: width .3s ease; }
-
+/* ═══ NOW UP ═══ */
 .now-up {
-  margin: 8px 16px 4px;
-  background: linear-gradient(135deg, var(--c) 0%, #b8261f 100%);
-  border-radius: 12px; padding: 11px 14px; color: #fff;
-  display: flex; gap: 12px; align-items: center;
+  margin: 8px 16px 6px;
+  background: var(--c-g);
+  border-radius: var(--r-md); padding: 14px 16px; color: #fff;
+  display: flex; gap: 14px; align-items: center;
+  box-shadow: 0 8px 24px rgba(59,130,246,.35);
 }
-.now-up-pulse { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: pulse 1.6s ease-in-out infinite; flex-shrink: 0; }
-@keyframes pulse { 0%, 100% { opacity: .5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.3); } }
+.now-up-pulse {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(255,255,255,.9);
+  animation: pulse 1.8s ease-in-out infinite; flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(255,255,255,.4);
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,.4); }
+  50% { transform: scale(1.3); box-shadow: 0 0 0 5px rgba(255,255,255,0); }
+}
 .now-up-body { flex: 1; min-width: 0; }
-.now-up-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; opacity: .8; margin-bottom: 1px; }
-.now-up-title { font-size: 13px; font-weight: 600; }
+.now-up-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: .15em; text-transform: uppercase; opacity: .75; margin-bottom: 2px; }
+.now-up-title { font-size: 15px; font-weight: 700; line-height: 1.2; }
 
-/* SECTION LABEL */
-.section-lbl { font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--dm); padding: 18px 20px 8px; display: flex; justify-content: space-between; align-items: center; }
-.section-lbl .lbl-act { font-family: var(--mono); font-size: 10px; color: var(--c); cursor: pointer; background: none; border: none; padding: 0; letter-spacing: .05em; text-transform: uppercase; }
+/* ═══ SECTION LABEL ═══ */
+.section-lbl {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--tx3);
+  padding: 20px 20px 8px; display: flex; justify-content: space-between; align-items: center;
+}
+.section-lbl .lbl-act {
+  font-family: var(--mono); font-size: 10px; cursor: pointer;
+  background: none; border: none; padding: 0; letter-spacing: .06em; text-transform: uppercase;
+  background: var(--c-g); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; font-weight: 700;
+}
 
-/* TIMELINE */
+/* ═══ TIMELINE ═══ */
 .timeline { position: relative; padding: 0 16px 0 0; margin-left: 16px; }
-.tl-row { display: flex; align-items: flex-start; margin-bottom: 3px; cursor: pointer; transition: opacity .15s; }
-.tl-row.done { opacity: .42; }
-.tl-row.done .tl-name { text-decoration: line-through; text-decoration-color: var(--dm); }
-.tl-time { width: 56px; flex-shrink: 0; padding-right: 14px; padding-top: 14px; text-align: right; font-family: var(--mono); font-size: 10px; color: var(--dm); line-height: 1.3; }
-.tl-axis { flex-shrink: 0; width: 16px; display: flex; flex-direction: column; align-items: center; padding-top: 17px; }
-.tl-dot { width: 8px; height: 8px; border-radius: 50%; position: relative; z-index: 1; }
-.tl-card-wrap { flex: 1; padding: 0 0 3px 12px; min-width: 0; }
-.tl-card { border-radius: 10px; padding: 10px 14px; border: 1px solid var(--bd); background: var(--sf); display: flex; gap: 10px; align-items: flex-start; }
-.tl-card.dr { background: rgba(255,255,255,.015); border-style: dashed; }
-.tl-card.wk { background: #120b0a; }
-.tl-check { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--dm); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #000; margin-top: 1px; transition: all .12s; }
-.tl-row.done .tl-check { background: var(--c); border-color: var(--c); }
+.tl-row { display: flex; align-items: flex-start; margin-bottom: 4px; cursor: pointer; transition: opacity .15s; }
+.tl-row.done { opacity: .38; }
+.tl-row.done .tl-name { text-decoration: line-through; text-decoration-color: var(--tx3); }
+.tl-time { width: 56px; flex-shrink: 0; padding-right: 12px; padding-top: 14px; text-align: right; font-family: var(--mono); font-size: 10px; color: var(--tx3); line-height: 1.3; }
+.tl-axis { flex-shrink: 0; width: 18px; display: flex; flex-direction: column; align-items: center; padding-top: 16px; }
+.tl-dot { width: 9px; height: 9px; border-radius: 50%; position: relative; z-index: 1; }
+.tl-card-wrap { flex: 1; padding: 0 0 4px 12px; min-width: 0; }
+.tl-card {
+  border-radius: var(--r-sm); padding: 11px 14px;
+  border: 1px solid var(--bd); background: var(--sf);
+  display: flex; gap: 10px; align-items: flex-start;
+  box-shadow: var(--sh-sm); transition: all .15s;
+}
+.tl-row:active .tl-card { transform: scale(.98); }
+.tl-card.dr { background: var(--s2); border-style: dashed; border-color: var(--bd2); box-shadow: none; }
+.tl-card.wk {
+  background: linear-gradient(135deg, rgba(59,130,246,.06) 0%, rgba(14,165,233,.06) 100%);
+  border-color: rgba(59,130,246,.25);
+}
+[data-theme="light"] .tl-card.wk { background: rgba(59,130,246,.05); }
+[data-theme="light"] .tl-card.dr { background: var(--s2); }
+.tl-check {
+  width: 18px; height: 18px; border-radius: 6px;
+  border: 1.5px solid var(--bd2); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: #fff; margin-top: 1px;
+  transition: all .15s;
+}
+.tl-row.done .tl-check {
+  background: var(--c-g); border-color: transparent;
+  box-shadow: 0 2px 8px rgba(59,130,246,.4);
+}
 .tl-body { flex: 1; min-width: 0; }
 .tl-name { font-size: 13px; font-weight: 600; color: var(--tx); margin-bottom: 2px; line-height: 1.3; }
-.tl-card.dr .tl-name { color: var(--dm); }
-.tl-detail { font-size: 11px; color: var(--dm); font-weight: 300; line-height: 1.5; }
+.tl-card.dr .tl-name { color: var(--tx2); }
+.tl-detail { font-size: 11px; color: var(--tx3); font-weight: 400; line-height: 1.5; }
 
-/* EVENTS */
-.event { background: var(--sf); border: 1px solid var(--bd); border-radius: 10px; padding: 11px 12px; margin: 0 16px 5px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
-.event-bar { width: 3px; align-self: stretch; border-radius: 2px; margin: -11px 0 -11px -12px; margin-right: 4px; }
-.event-time { font-family: var(--mono); font-size: 11px; color: var(--dm); min-width: 56px; font-weight: 500; }
+/* ═══ EVENTS ═══ */
+.event {
+  background: var(--sf); border: 1px solid var(--bd); border-radius: var(--r-md);
+  padding: 12px 14px; margin: 0 16px 6px;
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  box-shadow: var(--sh-sm); transition: all .15s;
+}
+.event:active { transform: scale(.98); }
+.event-bar { width: 3px; align-self: stretch; border-radius: 999px; margin: -12px 0 -12px -14px; margin-right: 6px; }
+.event-time { font-family: var(--mono); font-size: 11px; color: var(--tx3); min-width: 56px; font-weight: 500; }
 .event-body { flex: 1; min-width: 0; }
 .event-title { font-size: 13px; font-weight: 600; color: var(--tx); margin-bottom: 2px; word-wrap: break-word; }
-.event-cat { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--dm); }
-.event-recur { display: inline-block; margin-left: 6px; padding: 1px 4px; background: rgba(224,49,40,.15); border-radius: 3px; color: var(--c); font-weight: 600; }
-.event-del { background: transparent; border: none; color: var(--dm); font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
-.event-del:active { background: var(--s2); color: var(--c); }
-.empty-state { text-align: center; padding: 14px 20px; color: var(--dm); font-size: 11px; margin: 0 16px; }
+.event-cat { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--tx3); }
+.event-recur {
+  display: inline-block; margin-left: 6px; padding: 1px 6px;
+  background: rgba(59,130,246,.12); border-radius: 999px;
+  color: var(--c); font-weight: 700; font-size: 8px; letter-spacing: .06em;
+}
+.event-del { background: transparent; border: none; color: var(--tx3); font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: all .12s; }
+.event-del:active { background: var(--s2); color: var(--rose); }
+.empty-state { text-align: center; padding: 20px; color: var(--tx3); font-size: 12px; margin: 0 16px; line-height: 1.5; }
 
-/* MODAL */
-.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 300; align-items: flex-end; justify-content: center; }
-.modal-bg.on { display: flex; }
-.modal { width: 100%; max-width: 430px; background: var(--sf); border-top: 1px solid var(--bd); border-radius: 20px 20px 0 0; padding: 20px 18px 32px; max-height: 90vh; overflow-y: auto; }
-.modal-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-.modal-title { font-size: 16px; font-weight: 600; letter-spacing: -.2px; }
-.modal-close { background: var(--s2); border: none; color: var(--tx); width: 30px; height: 30px; border-radius: 8px; font-size: 14px; cursor: pointer; }
-.field { margin-bottom: 12px; }
-.field-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--dm); margin-bottom: 6px; }
-.field-input, .field-select { width: 100%; background: var(--s2); border: 1.5px solid var(--bd); border-radius: 8px; padding: 10px 12px; color: var(--tx); font-family: var(--sans); font-size: 13px; outline: none; }
-.field-input:focus, .field-select:focus { border-color: var(--dm); }
-.field-textarea { min-height: 70px; resize: vertical; line-height: 1.5; }
+/* ═══ TODAY PAGE ═══ */
+.today-hd { padding: 4px 4px 16px; }
+.today-eyebrow {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+  background: var(--c-g); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; margin-bottom: 4px; display: inline-block;
+}
+.today-title { font-size: 24px; font-weight: 800; letter-spacing: -.4px; }
+.today-nav { display: flex; gap: 6px; margin-top: 12px; align-items: center; }
+.today-arrow {
+  background: var(--sf); border: 1px solid var(--bd); color: var(--tx2);
+  width: 36px; height: 36px; border-radius: 50%; font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--sh-sm); transition: all .15s;
+}
+.today-arrow:active { transform: scale(.9); background: var(--s2); }
+.today-jump {
+  flex: 1; background: var(--sf); border: 1px solid var(--bd); color: var(--tx2);
+  padding: 9px 14px; border-radius: 999px;
+  font-family: var(--mono); font-size: 10px; letter-spacing: .07em; text-transform: uppercase;
+  cursor: pointer; box-shadow: var(--sh-sm); font-weight: 600; transition: all .15s;
+}
+.today-jump:active { background: var(--s2); }
+
+/* ═══ TOMORROW PREVIEW ═══ */
+.next-up-card {
+  margin-bottom: 14px;
+  background: var(--sf); border: 1px solid var(--bd); border-radius: var(--r-md);
+  padding: 14px 16px; display: flex; gap: 12px; align-items: center; cursor: pointer;
+  box-shadow: var(--sh-sm); transition: all .15s;
+}
+.next-up-card:active { transform: scale(.98); }
+.next-up-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--tx3); margin-bottom: 3px; }
+.next-up-title { font-size: 14px; font-weight: 700; }
+.next-up-time { font-family: var(--mono); font-size: 11px; color: var(--tx3); margin-top: 2px; }
+.next-up-arrow { color: var(--tx3); font-size: 20px; }
+
+/* ═══ INSIGHTS ═══ */
+.insights-hd { padding: 4px 4px 10px; }
+.insights-title { font-size: 24px; font-weight: 800; letter-spacing: -.4px; margin-bottom: 4px; }
+.insights-sub { font-size: 12px; color: var(--tx3); }
+.insights-period {
+  display: flex; gap: 3px; margin: 10px 0 16px;
+  padding: 3px; background: var(--sf); border: 1px solid var(--bd);
+  border-radius: var(--r-sm); box-shadow: var(--sh-sm);
+}
+.ip-btn { flex: 1; background: transparent; border: none; color: var(--tx3); padding: 8px; border-radius: 8px; font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; cursor: pointer; transition: all .15s; }
+.ip-btn.on { background: var(--c-g); color: #fff; box-shadow: 0 2px 8px rgba(59,130,246,.3); }
+
+.insight-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; }
+.insight-big {
+  background: var(--sf); border: 1px solid var(--bd); border-radius: var(--r-md);
+  padding: 16px 14px; box-shadow: var(--sh-sm); position: relative; overflow: hidden;
+}
+.insight-big.full { grid-column: 1 / -1; }
+.insight-big::after {
+  content: ''; position: absolute; top: 0; right: 0;
+  width: 60px; height: 60px;
+  background: var(--c-g); opacity: .04; border-radius: 0 var(--r-md) 0 60px;
+}
+.insight-num {
+  font-size: 30px; font-weight: 800; letter-spacing: -.6px; line-height: 1; margin-bottom: 5px;
+  background: var(--c-g); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.insight-num.muted { background: none; -webkit-text-fill-color: var(--tx3); color: var(--tx3); }
+.insight-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--tx3); }
+.insight-sublbl { font-size: 11px; color: var(--tx3); margin-top: 5px; }
+
+.shift-breakdown { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.sb-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.sb-bar-wrap { flex: 1; height: 8px; background: var(--s2); border-radius: 999px; overflow: hidden; }
+.sb-bar { height: 100%; border-radius: 999px; transition: width .5s cubic-bezier(.4,0,.2,1); }
+.sb-count { font-family: var(--mono); font-size: 11px; color: var(--tx2); min-width: 28px; text-align: right; font-weight: 700; }
+.sb-name { min-width: 72px; font-size: 12px; font-weight: 600; color: var(--tx2); }
+
+.cat-breakdown { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.cb-pill { display: flex; align-items: center; gap: 5px; padding: 6px 10px; background: var(--s2); border-radius: 999px; font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--tx2); }
+.cb-dot { width: 7px; height: 7px; border-radius: 50%; }
+.cb-count { color: var(--tx3); margin-left: 2px; }
+
+/* ═══ MODAL ═══ */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(6,8,16,.82); backdrop-filter: blur(6px); z-index: 300; align-items: flex-end; justify-content: center; }
+.modal-bg.on { display: flex; animation: fadeIn .18s ease; }
+.modal {
+  width: 100%; max-width: 430px;
+  background: var(--sf); border: 1px solid var(--bd);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  padding: 6px 20px 36px; max-height: 92vh;
+  box-shadow: var(--sh-lg);
+  animation: slideUp .28s cubic-bezier(.32,1,.24,1);
+}
+.modal::before {
+  content: ''; display: block; width: 36px; height: 4px;
+  background: var(--bd2); border-radius: 2px;
+  margin: 10px auto 18px;
+}
+.modal-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.modal-title { font-size: 18px; font-weight: 800; letter-spacing: -.3px; }
+.modal-close {
+  background: var(--s2); border: 1px solid var(--bd); color: var(--tx2);
+  width: 30px; height: 30px; border-radius: 50%; font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all .15s;
+}
+.modal-close:active { transform: scale(.9); }
+.field { margin-bottom: 14px; }
+.field-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: .13em; text-transform: uppercase; color: var(--tx3); margin-bottom: 7px; }
+.field-input, .field-select {
+  width: 100%; background: var(--s2); border: 1.5px solid var(--bd);
+  border-radius: var(--r-sm); padding: 11px 14px;
+  color: var(--tx); font-family: var(--sans); font-size: 14px; outline: none;
+  transition: border-color .15s;
+}
+.field-input:focus, .field-select:focus { border-color: var(--c); box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+.field-textarea { min-height: 80px; resize: vertical; line-height: 1.5; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.cat-pick { background: var(--s2); border: 1.5px solid var(--bd); color: var(--dm); border-radius: 8px; padding: 9px 6px; font-size: 10px; font-weight: 600; font-family: var(--mono); letter-spacing: .05em; text-transform: uppercase; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.cat-pick.on { border-color: var(--c); color: var(--c); background: rgba(224,49,40,.08); }
-.cat-pick-dot { width: 8px; height: 8px; border-radius: 50%; }
-.modal-actions { display: flex; gap: 8px; margin-top: 16px; }
-.btn-primary { flex: 1; background: var(--c); color: #fff; border: none; border-radius: 8px; padding: 12px; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; }
-.btn-secondary { flex: 1; background: var(--s2); color: var(--tx); border: 1px solid var(--bd); border-radius: 8px; padding: 12px; font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer; }
-.btn-danger { background: transparent; color: var(--c); border: 1px solid var(--c); }
-
-/* RECURRENCE PICKER */
-.recur-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-.recur-pick { background: var(--s2); border: 1px solid var(--bd); color: var(--dm); border-radius: 7px; padding: 8px 4px; font-family: var(--mono); font-size: 9px; letter-spacing: .04em; text-transform: uppercase; font-weight: 600; cursor: pointer; }
-.recur-pick.on { border-color: var(--c); color: var(--c); background: rgba(224,49,40,.08); }
-
-/* ONBOARDING */
-.onboard-bg { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 1000; }
-.onboard-bg.on { display: flex; flex-direction: column; align-items: center; }
-.onboard { width: 100%; max-width: 430px; padding: 60px 20px 40px; display: flex; flex-direction: column; min-height: 100vh; }
-.onboard-step { flex: 1; display: flex; flex-direction: column; }
-.onboard-eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--c); margin-bottom: 8px; }
-.onboard-title { font-size: 28px; font-weight: 700; letter-spacing: -.5px; line-height: 1.1; margin-bottom: 10px; }
-.onboard-sub { font-size: 14px; color: var(--dm); line-height: 1.5; margin-bottom: 24px; }
-.preset-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
-.preset {
-  background: var(--sf); border: 1.5px solid var(--bd); border-radius: 12px;
-  padding: 14px; cursor: pointer; display: flex; gap: 12px; align-items: center;
-  text-align: left;
+.cat-pick {
+  background: var(--s2); border: 1.5px solid var(--bd); color: var(--tx2);
+  border-radius: var(--r-sm); padding: 11px 6px;
+  font-size: 11px; font-weight: 600; font-family: var(--mono);
+  letter-spacing: .05em; text-transform: uppercase; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  transition: all .15s;
 }
-.preset.on { border-color: var(--c); background: rgba(224,49,40,.06); }
-.preset-emoji { font-size: 26px; flex-shrink: 0; }
-.preset-body { flex: 1; min-width: 0; }
-.preset-name { font-size: 14px; font-weight: 600; color: var(--tx); margin-bottom: 2px; }
-.preset-desc { font-size: 11px; color: var(--dm); }
-.onboard-foot { padding-top: 14px; }
-.onboard-btn { width: 100%; background: var(--c); color: #fff; border: none; border-radius: 10px; padding: 14px; font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer; }
-.onboard-btn:disabled { background: var(--s2); color: var(--dm); cursor: not-allowed; }
+.cat-pick.on { border-color: var(--c); color: var(--c); background: rgba(59,130,246,.08); }
+.cat-pick-dot { width: 9px; height: 9px; border-radius: 50%; }
+.modal-actions { display: flex; gap: 8px; margin-top: 20px; }
+.btn-primary {
+  flex: 1; background: var(--c-g); color: #fff; border: none;
+  border-radius: var(--r-sm); padding: 14px;
+  font-family: var(--sans); font-size: 14px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(59,130,246,.35); transition: all .15s;
+}
+.btn-primary:active { transform: scale(.97); opacity: .9; }
+.btn-secondary {
+  flex: 1; background: var(--s2); color: var(--tx2); border: 1px solid var(--bd);
+  border-radius: var(--r-sm); padding: 14px;
+  font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: all .15s;
+}
+.btn-secondary:active { transform: scale(.97); }
+.btn-danger { background: transparent; color: var(--rose); border: 1px solid var(--rose); }
 
-/* SETTINGS / SHIFT BUILDER */
-.builder { padding: 14px 16px 100px; }
-.builder-card { background: var(--sf); border: 1px solid var(--bd); border-radius: 12px; padding: 14px; margin-bottom: 8px; }
-.builder-card-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.builder-card-title { font-size: 14px; font-weight: 600; }
-.builder-card-sub { font-family: var(--mono); font-size: 10px; color: var(--dm); letter-spacing: .04em; }
+/* ═══ RECURRENCE ═══ */
+.recur-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.recur-pick {
+  background: var(--s2); border: 1.5px solid var(--bd); color: var(--tx3);
+  border-radius: var(--r-sm); padding: 9px 4px;
+  font-family: var(--mono); font-size: 9px; letter-spacing: .05em;
+  text-transform: uppercase; font-weight: 600; cursor: pointer; transition: all .15s;
+}
+.recur-pick.on { border-color: var(--c); color: var(--c); background: rgba(59,130,246,.08); }
+
+/* ═══ ONBOARDING ═══ */
+.onboard-bg {
+  display: none; position: fixed; inset: 0; background: var(--bg); z-index: 1000;
+}
+.onboard-bg.on { display: flex; flex-direction: column; align-items: center; }
+.onboard { width: 100%; max-width: 430px; padding: 70px 22px 44px; display: flex; flex-direction: column; min-height: 100vh; }
+.onboard-step { flex: 1; display: flex; flex-direction: column; }
+.onboard-eyebrow {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+  background: var(--c-g); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; margin-bottom: 10px; display: inline-block;
+}
+.onboard-title { font-size: 32px; font-weight: 800; letter-spacing: -.7px; line-height: 1.1; margin-bottom: 10px; }
+.onboard-sub { font-size: 15px; color: var(--tx3); line-height: 1.6; margin-bottom: 28px; }
+.preset-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+.preset {
+  background: var(--sf); border: 1.5px solid var(--bd);
+  border-radius: var(--r-md); padding: 16px;
+  cursor: pointer; display: flex; gap: 14px; align-items: center;
+  text-align: left; box-shadow: var(--sh-sm); transition: all .18s;
+}
+.preset:active { transform: scale(.98); }
+.preset.on {
+  border-color: var(--c);
+  background: rgba(59,130,246,.06);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.15), var(--sh-sm);
+}
+.preset-emoji { font-size: 28px; flex-shrink: 0; }
+.preset-body { flex: 1; min-width: 0; }
+.preset-name { font-size: 15px; font-weight: 700; color: var(--tx); margin-bottom: 3px; }
+.preset-desc { font-size: 12px; color: var(--tx3); line-height: 1.4; }
+.onboard-foot { padding-top: 14px; }
+.onboard-btn {
+  width: 100%; background: var(--c-g); color: #fff; border: none;
+  border-radius: var(--r-md); padding: 16px;
+  font-family: var(--sans); font-size: 15px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(59,130,246,.4); transition: all .15s;
+}
+.onboard-btn:active { transform: scale(.98); }
+.onboard-btn:disabled { background: var(--s2); color: var(--tx3); box-shadow: none; cursor: not-allowed; }
+
+/* ═══ SETTINGS / SHIFT BUILDER ═══ */
+.builder-card {
+  background: var(--sf); border: 1px solid var(--bd);
+  border-radius: var(--r-md); padding: 16px; margin-bottom: 10px;
+  box-shadow: var(--sh-sm);
+}
+.builder-card-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.builder-card-title { font-size: 15px; font-weight: 700; }
+.builder-card-sub { font-family: var(--mono); font-size: 10px; color: var(--tx3); letter-spacing: .04em; }
 .builder-card-actions { display: flex; gap: 6px; }
 .builder-icon-btn {
-  background: var(--s2); border: 1px solid var(--bd); color: var(--tx);
-  width: 28px; height: 28px; border-radius: 6px; font-size: 12px; cursor: pointer;
+  background: var(--s2); border: 1px solid var(--bd); color: var(--tx2);
+  width: 30px; height: 30px; border-radius: 50%; font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all .12s;
 }
-.builder-icon-btn.del { color: var(--c); }
-.builder-block-count { font-family: var(--mono); font-size: 10px; color: var(--dm); letter-spacing: .05em; }
+.builder-icon-btn:active { transform: scale(.9); }
+.builder-icon-btn.del { color: var(--rose); border-color: rgba(251,113,133,.3); }
 .builder-add {
-  width: 100%; background: var(--sf); border: 1px dashed var(--bd); color: var(--tx);
-  border-radius: 10px; padding: 12px;
-  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
-  font-weight: 500; cursor: pointer; margin-top: 8px;
+  width: 100%; background: var(--sf); border: 1.5px dashed var(--bd); color: var(--tx2);
+  border-radius: var(--r-md); padding: 14px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  font-weight: 600; cursor: pointer; margin-top: 10px; transition: all .15s;
 }
+.builder-add:active { background: var(--s2); }
 
-/* BLOCK EDITOR */
-.block-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-.block-edit { display: flex; gap: 6px; align-items: center; background: var(--s2); border: 1px solid var(--bd); border-radius: 8px; padding: 8px; }
-.block-edit-cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.block-edit-time, .block-edit-name {
-  background: transparent; border: none; color: var(--tx);
-  font-family: var(--mono); font-size: 11px; padding: 4px 6px; outline: none;
+/* ═══ BLOCK EDITOR ═══ */
+.block-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 10px; }
+.block-edit {
+  display: flex; gap: 6px; align-items: center; background: var(--s2);
+  border: 1px solid var(--bd); border-radius: var(--r-sm); padding: 9px;
 }
-.block-edit-time { width: 70px; }
+.block-edit-cat-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.block-edit-time, .block-edit-name { background: transparent; border: none; color: var(--tx); font-family: var(--mono); font-size: 11px; padding: 4px 6px; outline: none; }
 .block-edit-name { flex: 1; min-width: 0; font-family: var(--sans); font-size: 12px; font-weight: 500; }
-.block-edit-cat-sel { background: var(--bg); border: 1px solid var(--bd); color: var(--tx); font-family: var(--mono); font-size: 9px; padding: 3px; border-radius: 4px; outline: none; }
-.block-edit-del { background: transparent; border: none; color: var(--dm); font-size: 14px; cursor: pointer; padding: 2px 6px; }
-.block-edit-del:active { color: var(--c); }
-.block-detail-row { padding: 0 8px 8px; }
-.block-detail-input { width: 100%; background: var(--bg); border: 1px solid var(--bd); border-radius: 6px; padding: 6px 8px; color: var(--dm); font-family: var(--sans); font-size: 11px; outline: none; }
+.block-edit-cat-sel { background: var(--bg); border: 1px solid var(--bd); color: var(--tx2); font-family: var(--mono); font-size: 9px; padding: 4px; border-radius: 6px; outline: none; }
+.block-edit-del { background: transparent; border: none; color: var(--tx3); font-size: 14px; cursor: pointer; padding: 2px 6px; transition: color .12s; }
+.block-edit-del:active { color: var(--rose); }
+.block-detail-row { padding: 0 9px 9px; }
+.block-detail-input { width: 100%; background: var(--bg); border: 1px solid var(--bd); border-radius: 8px; padding: 7px 10px; color: var(--tx3); font-family: var(--sans); font-size: 11px; outline: none; }
 
-/* SHIFT MODAL */
-.color-row { display: flex; gap: 6px; flex-wrap: wrap; }
-.color-pick { width: 28px; height: 28px; border-radius: 7px; cursor: pointer; border: 2px solid transparent; }
-.color-pick.on { border-color: var(--tx); }
+/* ═══ COLOR PICKER ═══ */
+.color-row { display: flex; gap: 7px; flex-wrap: wrap; }
+.color-pick { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: all .15s; }
+.color-pick:active { transform: scale(.88); }
+.color-pick.on { border-color: var(--tx); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--tx); }
 
-/* IMPORT MODAL */
-.import-tabs { display: flex; gap: 4px; margin-bottom: 14px; padding: 4px; background: var(--s2); border-radius: 10px; }
-.import-tab { flex: 1; background: transparent; border: none; color: var(--dm); padding: 8px; border-radius: 7px; font-family: var(--mono); font-size: 10px; font-weight: 600; cursor: pointer; letter-spacing: .04em; text-transform: uppercase; }
-.import-tab.on { background: var(--c); color: #fff; }
+/* ═══ VARIANT EDITOR ═══ */
+.variant-editor-card {
+  background: var(--s2); border: 1px solid var(--bd);
+  border-radius: var(--r-sm); padding: 10px; margin-bottom: 8px;
+}
+.variant-editor-hd {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.variant-editor-label-input {
+  flex: 1; background: var(--bg); border: 1px solid var(--bd);
+  border-radius: 7px; padding: 6px 10px;
+  color: var(--tx); font-family: var(--mono); font-size: 12px;
+  font-weight: 600; outline: none;
+}
+.variant-editor-del {
+  background: transparent; border: none; color: var(--tx3);
+  font-size: 16px; cursor: pointer; padding: 2px 6px;
+  transition: color .12s;
+}
+.variant-editor-del:active { color: var(--rose); }
+.variant-editor-toggle {
+  background: transparent; border: none; color: var(--tx3);
+  font-size: 11px; cursor: pointer; padding: 2px 6px;
+  font-family: var(--mono); letter-spacing: .04em;
+  text-transform: uppercase; transition: color .12s;
+}
+.variant-editor-toggle.open { color: var(--c); }
+.variant-blocks-wrap { display: none; }
+.variant-blocks-wrap.open { display: block; }
+
+/* ═══ CELL START TIME ═══ */
+.cell-start-time {
+  position: absolute; bottom: 4px; left: 5px;
+  font-family: var(--mono); font-size: 7px; font-weight: 700;
+  color: rgba(255,255,255,.7); line-height: 1;
+  letter-spacing: .02em;
+  pointer-events: none;
+}
+[data-theme="light"] .cell-start-time { color: var(--tx3); }
+
+/* ═══ TIME PAIR PICKER ═══ */
+.time-pair { display: flex; align-items: center; gap: 8px; }
+.time-pair input[type="time"] {
+  flex: 1; background: var(--s2); border: 1.5px solid var(--bd);
+  border-radius: var(--r-sm); padding: 11px 10px;
+  color: var(--tx); font-family: var(--mono); font-size: 14px; outline: none;
+  -webkit-appearance: none; appearance: none;
+  touch-action: manipulation;
+}
+.time-pair input[type="time"]:focus { border-color: var(--c); box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+.time-pair-sep { color: var(--tx3); font-size: 14px; font-family: var(--mono); flex-shrink: 0; }
+.time-preview {
+  margin-top: 8px; padding: 9px 14px;
+  background: var(--s2); border-radius: 10px;
+  font-family: var(--mono); font-size: 12px; color: var(--c);
+  letter-spacing: .06em; font-weight: 600; text-align: center;
+  min-height: 34px; display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.time-preview.empty { color: var(--tx3); font-weight: 400; }
+.variant-time-pair { display: flex; align-items: center; gap: 4px; flex: 2; min-width: 0; }
+.variant-time-pair input[type="time"] {
+  flex: 1; min-width: 0; background: var(--bg); border: 1px solid var(--bd);
+  border-radius: 7px; padding: 5px 5px;
+  color: var(--tx); font-family: var(--mono); font-size: 10px; outline: none;
+  -webkit-appearance: none; appearance: none;
+}
+.variant-time-sep { color: var(--tx3); font-size: 10px; flex-shrink: 0; }
+.block-time-pick {
+  width: 76px; background: transparent; border: none;
+  color: var(--tx); font-family: var(--mono); font-size: 11px;
+  padding: 4px 4px; outline: none;
+  -webkit-appearance: none; appearance: none; cursor: pointer;
+}
+
+/* ═══ IMPORT MODAL ═══ */
+.import-tabs { display: flex; gap: 3px; margin-bottom: 16px; padding: 3px; background: var(--s2); border-radius: var(--r-sm); }
+.import-tab { flex: 1; background: transparent; border: none; color: var(--tx3); padding: 9px; border-radius: 8px; font-family: var(--mono); font-size: 10px; font-weight: 600; cursor: pointer; letter-spacing: .05em; text-transform: uppercase; transition: all .15s; }
+.import-tab.on { background: var(--c-g); color: #fff; box-shadow: 0 2px 8px rgba(59,130,246,.3); }
 .import-pane { display: none; }
 .import-pane.on { display: block; }
-.import-help { font-size: 11px; color: var(--dm); line-height: 1.5; margin-bottom: 10px; }
-.pattern-grid { display: grid; grid-template-columns: 60px 1fr; gap: 6px 8px; align-items: center; margin-bottom: 12px; }
-.pattern-day { font-family: var(--mono); font-size: 11px; color: var(--dm); font-weight: 600; }
-.pattern-sel { background: var(--s2); border: 1px solid var(--bd); color: var(--tx); padding: 7px 8px; border-radius: 6px; font-family: var(--mono); font-size: 11px; outline: none; }
-.pattern-range { display: flex; gap: 8px; margin-bottom: 12px; }
+.import-help { font-size: 12px; color: var(--tx3); line-height: 1.6; margin-bottom: 12px; }
+.pattern-grid { display: grid; grid-template-columns: 60px 1fr; gap: 7px 10px; align-items: center; margin-bottom: 14px; }
+.pattern-day { font-family: var(--mono); font-size: 11px; color: var(--tx3); font-weight: 600; }
+.pattern-sel { background: var(--s2); border: 1.5px solid var(--bd); color: var(--tx); padding: 8px 10px; border-radius: var(--r-sm); font-family: var(--mono); font-size: 11px; outline: none; }
+.pattern-range { display: flex; gap: 10px; margin-bottom: 14px; }
 .pattern-range > div { flex: 1; }
-.pattern-info { background: var(--s2); border-radius: 8px; padding: 10px 12px; font-size: 11px; color: var(--dm); font-family: var(--mono); letter-spacing: .04em; margin-bottom: 10px; }
+.pattern-info { background: var(--s2); border-radius: var(--r-sm); padding: 11px 14px; font-size: 12px; color: var(--tx3); font-family: var(--mono); letter-spacing: .04em; margin-bottom: 10px; border: 1px solid var(--bd); }
 
 </style>
 </head>
@@ -339,12 +869,21 @@ body {
     </div>
   </div>
 
-  <div class="tool-row">
-    <button class="tool-btn" id="btnImport"><span class="ic">🗓</span> Schedule</button>
-    <button class="tool-btn" id="btnSettings"><span class="ic">⚙</span> Shifts</button>
+  <!-- View switcher -->
+  <div class="view-switcher">
+    <button class="vs-btn" data-view="today">Today</button>
+    <button class="vs-btn on" data-view="month">Month</button>
+    <button class="vs-btn" data-view="insights">Insights</button>
   </div>
 
-  <div class="page">
+  <div class="tool-row" id="toolRow">
+    <button class="tool-btn" id="btnImport"><span class="ic">🗓</span> Schedule</button>
+    <button class="tool-btn" id="btnSettings"><span class="ic">📋</span> Shifts</button>
+    <button class="tool-btn" id="btnPrefs"><span class="ic">⚙</span> Settings</button>
+  </div>
+
+  <!-- MONTH PAGE -->
+  <div class="page" id="page-month">
     <div class="month-stats">
       <div class="stat"><div class="stat-val" id="totalShifts">0</div><div class="stat-lbl">Shifts</div></div>
       <div class="stat"><div class="stat-val" id="totalEvents">0</div><div class="stat-lbl">Events</div></div>
@@ -360,6 +899,16 @@ body {
     </div>
 
     <div class="legend" id="legend"></div>
+  </div>
+
+  <!-- TODAY PAGE -->
+  <div class="page" id="page-today" style="display:none">
+    <div id="todayBody"></div>
+  </div>
+
+  <!-- INSIGHTS PAGE -->
+  <div class="page" id="page-insights" style="display:none">
+    <div id="insightsBody"></div>
   </div>
 </div>
 
@@ -524,8 +1073,13 @@ body {
       <input type="text" class="field-input" id="shiftName" placeholder="e.g. Open, Night, Day Off">
     </div>
     <div class="field">
-      <div class="field-lbl">Time Label</div>
-      <input type="text" class="field-input" id="shiftTime" placeholder="e.g. 9:30 AM – 6:00 PM">
+      <div class="field-lbl">Shift Hours</div>
+      <div class="time-pair">
+        <input type="time" id="shiftTimeStart" placeholder="Start">
+        <span class="time-pair-sep">→</span>
+        <input type="time" id="shiftTimeEnd" placeholder="End">
+      </div>
+      <div class="time-preview empty" id="shiftTimePreview">Pick start &amp; end time</div>
     </div>
     <div class="field">
       <div class="field-lbl">Color</div>
@@ -536,9 +1090,41 @@ body {
       <div class="block-list" id="blockList"></div>
       <button class="builder-add" id="addBlock">+ Add Block</button>
     </div>
+    <div class="field" style="border-top:1px solid var(--bd);padding-top:16px;margin-top:4px">
+      <div class="field-lbl" style="margin-bottom:10px">Start Time Variants <span style="color:var(--tx3);font-weight:400;text-transform:none;letter-spacing:0">— optional, e.g. 9:00 / 9:15 / 9:30</span></div>
+      <div id="variantEditorList"></div>
+      <button class="builder-add" id="addVariant">+ Add Variant</button>
+    </div>
     <div class="modal-actions">
       <button class="btn-secondary" id="shiftCancel">Cancel</button>
       <button class="btn-primary" id="shiftSave">Save Shift</button>
+    </div>
+  </div>
+</div>
+
+<!-- PREFS MODAL -->
+<div class="modal-bg" id="prefsBg">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">Settings</div>
+      <button class="modal-close" id="prefsClose">×</button>
+    </div>
+    <div class="field">
+      <div class="field-lbl">Home View</div>
+      <div class="cat-grid" style="grid-template-columns:repeat(2,1fr)">
+        <button class="cat-pick" data-pref-home="month">📅 Month View</button>
+        <button class="cat-pick" data-pref-home="today">📍 Today View</button>
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-lbl">Theme</div>
+      <div class="cat-grid" style="grid-template-columns:repeat(2,1fr)">
+        <button class="cat-pick" data-pref-theme="dark">🌙 Dark</button>
+        <button class="cat-pick" data-pref-theme="light">☀️ Light</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="prefsDone" style="flex:1">Done</button>
     </div>
   </div>
 </div>
@@ -567,11 +1153,21 @@ const DONE_KEY    = 'planner_done_v2';
 const NOTES_KEY   = 'planner_notes_v2';
 const SHIFTDEF_KEY = 'planner_shiftdefs_v2';
 const ONBOARD_KEY = 'planner_onboarded_v2';
+const PREFS_KEY   = 'planner_prefs_v2';
 
 const CC = {
-  wake:'#c8a84a', learn:'#28b89e', dog:'#4aad6a', drive:'#38404f',
-  work:'#e03128', gym:'#f07c30', eve:'#3878d0', biz:'#7855c0', sleep:'#38404f',
-  meal:'#f07c30', kids:'#28b89e', rest:'#3878d0',
+  wake:  '#fbbf24',  // amber
+  learn: '#2dd4bf',  // teal
+  dog:   '#34d399',  // emerald
+  drive: '#94a3b8',  // slate
+  work:  '#3b82f6',  // indigo
+  gym:   '#fb923c',  // orange
+  eve:   '#38bdf8',  // sky
+  biz:   '#60a5fa',  // violet
+  sleep: '#64748b',  // slate-500
+  meal:  '#fb923c',  // orange
+  kids:  '#2dd4bf',  // teal
+  rest:  '#38bdf8',  // sky
 };
 const CC_LABELS = {
   wake:'Wake', learn:'Study', dog:'Walk', drive:'Drive',
@@ -580,15 +1176,15 @@ const CC_LABELS = {
 };
 
 const CATEGORIES = [
-  { id:'work',    label:'Work',    color:'#e03128' },
-  { id:'gym',     label:'Gym',     color:'#f07c30' },
-  { id:'biz',     label:'Project', color:'#7855c0' },
-  { id:'personal',label:'Personal',color:'#28b89e' },
-  { id:'social',  label:'Social',  color:'#3878d0' },
-  { id:'other',   label:'Other',   color:'#4aad6a' },
+  { id:'work',    label:'Work',    color:'#3b82f6' },
+  { id:'gym',     label:'Gym',     color:'#fb923c' },
+  { id:'biz',     label:'Project', color:'#60a5fa' },
+  { id:'personal',label:'Personal',color:'#2dd4bf' },
+  { id:'social',  label:'Social',  color:'#38bdf8' },
+  { id:'other',   label:'Other',   color:'#34d399' },
 ];
 
-const SHIFT_COLORS = ['#e03128','#c8a84a','#3878d0','#7855c0','#4aad6a','#28b89e','#f07c30','#ec4899','#14b8a6','#8b5cf6'];
+const SHIFT_COLORS = ['#3b82f6','#34d399','#fbbf24','#fb7185','#2dd4bf','#38bdf8','#60a5fa','#f472b6','#86efac','#fdba74'];
 
 /* ─────────────────────────────────────── PRESETS */
 const PRESETS = {
@@ -597,7 +1193,7 @@ const PRESETS = {
     name: 'Retail / Sales',
     desc: 'Open, Mid, Close shifts with variable schedule',
     shifts: {
-      sat: { emoji:'🗓', name:'Saturday', short:'SAT', time:'8:30 AM – 5:00 PM', color:'#e03128', blocks:[
+      sat: { emoji:'🗓', name:'Saturday', short:'SAT', time:'8:30 AM – 5:00 PM', color:'#3b82f6', blocks:[
         { t:'6:30 AM', c:'wake', n:'Wake Up + Hygiene', d:'Earliest start of the week.' },
         { t:'7:10 AM', c:'dog', n:'Dog Walk + Breakfast', d:'15–20 min walk, eat quick.' },
         { t:'7:50 AM', c:'drive', n:'🚗 Drive to Work', d:'30 min commute.' },
@@ -608,7 +1204,7 @@ const PRESETS = {
         { t:'8:00 PM', c:'biz', n:'Side Project', d:'Hard stop 9:15 PM.' },
         { t:'10:30 PM', c:'sleep', n:'Sleep', d:'Protect the sleep.' },
       ]},
-      open: { emoji:'🌅', name:'Open', short:'OPEN', time:'9:30 AM – 6:00 PM', color:'#c8a84a',
+      open: { emoji:'🌅', name:'Open', short:'OPEN', time:'9:30 AM – 6:00 PM', color:'#fbbf24',
         variants: [
           { id:'v900',  label:'9:00',  time:'9:00 AM – 5:30 PM', blocks:[
             { t:'7:00 AM', c:'wake', n:'Wake Up + Hygiene', d:'Hard anchor — same every Open day.' },
@@ -659,7 +1255,7 @@ const PRESETS = {
         { t:'8:50 PM', c:'biz', n:'Side Project', d:'Hard stop 9:30 PM.' },
         { t:'10:30 PM', c:'sleep', n:'Sleep', d:'Open stack is tight.' },
       ]},
-      mid: { emoji:'☀️', name:'Mid', short:'MID', time:'10:30 AM – 7:00 PM', color:'#3878d0', blocks:[
+      mid: { emoji:'☀️', name:'Mid', short:'MID', time:'10:30 AM – 7:00 PM', color:'#38bdf8', blocks:[
         { t:'7:00 AM', c:'wake', n:'Wake Up + Hygiene', d:'Best shift for a full morning.' },
         { t:'7:20 AM', c:'drive', n:'🚗 Home → Gym', d:'Gym before work.' },
         { t:'7:50 AM', c:'gym', n:'Gym — Lift + Cardio', d:'Uncrowded.' },
@@ -671,7 +1267,7 @@ const PRESETS = {
         { t:'8:30 PM', c:'biz', n:'Side Project', d:'Best evening window.' },
         { t:'11:00 PM', c:'sleep', n:'Sleep', d:'Latest bedtime allowed.' },
       ]},
-      close: { emoji:'🌙', name:'Close', short:'CLOS', time:'12:00 PM – 8:30 PM', color:'#7855c0', blocks:[
+      close: { emoji:'🌙', name:'Close', short:'CLOS', time:'12:00 PM – 8:30 PM', color:'#60a5fa', blocks:[
         { t:'7:00 AM', c:'wake', n:'Wake Up + Hygiene', d:'Most free morning of any shift.' },
         { t:'7:20 AM', c:'drive', n:'🚗 Home → Gym', d:'Gym first.' },
         { t:'7:50 AM', c:'gym', n:'Gym — Lift + Cardio', d:'Morning is the only smart window.' },
@@ -683,7 +1279,7 @@ const PRESETS = {
         { t:'9:20 PM', c:'eve', n:'Dinner + Wind Down', d:'Eat, exhale.' },
         { t:'10:30 PM', c:'sleep', n:'Sleep — Hard Stop', d:'No exceptions.' },
       ]},
-      off: { emoji:'🟢', name:'Day Off', short:'OFF', time:'No shift', color:'#4aad6a', blocks:[
+      off: { emoji:'🟢', name:'Day Off', short:'OFF', time:'No shift', color:'#34d399', blocks:[
         { t:'Natural', c:'wake', n:'Wake Up — No Alarm', d:'Don\'t go past 9 AM.' },
         { t:'Morning', c:'dog', n:'Long Dog Walk', d:'30–45 min.' },
         { t:'Mid AM', c:'gym', n:'Gym — Full Session', d:'No time pressure.' },
@@ -699,7 +1295,7 @@ const PRESETS = {
     name: 'Nurse / Healthcare',
     desc: '12-hour Day, Night, and On-call shifts',
     shifts: {
-      day: { emoji:'☀️', name:'Day Shift', short:'DAY', time:'7:00 AM – 7:30 PM', color:'#c8a84a', blocks:[
+      day: { emoji:'☀️', name:'Day Shift', short:'DAY', time:'7:00 AM – 7:30 PM', color:'#fbbf24', blocks:[
         { t:'5:30 AM', c:'wake', n:'Wake Up + Hygiene', d:'Early start. Coffee first.' },
         { t:'5:50 AM', c:'meal', n:'Breakfast + Pack Meals', d:'Pack 2 meals + snacks.' },
         { t:'6:20 AM', c:'drive', n:'🚗 Drive to Hospital', d:'30 min commute.' },
@@ -709,7 +1305,7 @@ const PRESETS = {
         { t:'8:45 PM', c:'rest', n:'Wind Down', d:'Shower, low lights.' },
         { t:'9:30 PM', c:'sleep', n:'Sleep', d:'8 hrs minimum.' },
       ]},
-      night: { emoji:'🌙', name:'Night Shift', short:'NITE', time:'7:00 PM – 7:30 AM', color:'#7855c0', blocks:[
+      night: { emoji:'🌙', name:'Night Shift', short:'NITE', time:'7:00 PM – 7:30 AM', color:'#60a5fa', blocks:[
         { t:'11:00 AM', c:'wake', n:'Wake Up', d:'Slept after last shift.' },
         { t:'12:00 PM', c:'meal', n:'Breakfast', d:'Your morning meal.' },
         { t:'2:00 PM', c:'gym', n:'Gym / Exercise', d:'Move your body.' },
@@ -719,7 +1315,7 @@ const PRESETS = {
         { t:'7:30 AM', c:'drive', n:'🚗 Drive Home', d:'Sunglasses on.' },
         { t:'8:30 AM', c:'sleep', n:'Sleep — Blackout', d:'Curtains drawn, phone off.' },
       ]},
-      oncall: { emoji:'📟', name:'On Call', short:'CALL', time:'Standby', color:'#3878d0', blocks:[
+      oncall: { emoji:'📟', name:'On Call', short:'CALL', time:'Standby', color:'#38bdf8', blocks:[
         { t:'8:00 AM', c:'wake', n:'Normal Wake', d:'Stay close to phone.' },
         { t:'9:00 AM', c:'meal', n:'Breakfast', d:'Bag packed ready to go.' },
         { t:'10:00 AM', c:'rest', n:'Light Activity', d:'Don\'t plan anything you can\'t drop.' },
@@ -728,7 +1324,7 @@ const PRESETS = {
         { t:'7:00 PM', c:'meal', n:'Dinner', d:'Keep it light.' },
         { t:'10:00 PM', c:'sleep', n:'Sleep — Phone On', d:'Scrubs ready.' },
       ]},
-      off: { emoji:'🟢', name:'Day Off', short:'OFF', time:'No shift', color:'#4aad6a', blocks:[
+      off: { emoji:'🟢', name:'Day Off', short:'OFF', time:'No shift', color:'#34d399', blocks:[
         { t:'Natural', c:'wake', n:'Wake Up — No Alarm', d:'Real rest day.' },
         { t:'Morning', c:'meal', n:'Slow Breakfast', d:'No rush.' },
         { t:'Mid AM', c:'gym', n:'Full Workout', d:'No time pressure.' },
@@ -743,7 +1339,7 @@ const PRESETS = {
     name: 'Food Service / Barista',
     desc: 'Opening, Mid, and Closing shifts',
     shifts: {
-      open: { emoji:'🌄', name:'Opening', short:'OPEN', time:'5:00 AM – 1:00 PM', color:'#c8a84a', blocks:[
+      open: { emoji:'🌄', name:'Opening', short:'OPEN', time:'5:00 AM – 1:00 PM', color:'#fbbf24', blocks:[
         { t:'4:00 AM', c:'wake', n:'Wake Up', d:'Brutal early. Move.' },
         { t:'4:20 AM', c:'drive', n:'🚗 Drive In', d:'Empty roads.' },
         { t:'5:00 AM', c:'work', n:'Open the Store', d:'Set up, prep, brew.' },
@@ -754,7 +1350,7 @@ const PRESETS = {
         { t:'7:00 PM', c:'meal', n:'Dinner', d:'Light meal.' },
         { t:'8:30 PM', c:'sleep', n:'Sleep', d:'4 AM is brutal.' },
       ]},
-      mid: { emoji:'☀️', name:'Mid', short:'MID', time:'10:00 AM – 6:00 PM', color:'#3878d0', blocks:[
+      mid: { emoji:'☀️', name:'Mid', short:'MID', time:'10:00 AM – 6:00 PM', color:'#38bdf8', blocks:[
         { t:'7:30 AM', c:'wake', n:'Wake Up + Coffee', d:'Slow morning.' },
         { t:'8:00 AM', c:'gym', n:'Gym', d:'Before work.' },
         { t:'9:30 AM', c:'drive', n:'🚗 Drive In', d:'Quick commute.' },
@@ -763,7 +1359,7 @@ const PRESETS = {
         { t:'7:30 PM', c:'biz', n:'Personal Time', d:'Project / friends.' },
         { t:'10:30 PM', c:'sleep', n:'Sleep', d:'Reasonable bedtime.' },
       ]},
-      close: { emoji:'🌙', name:'Closing', short:'CLOS', time:'3:00 PM – 11:00 PM', color:'#7855c0', blocks:[
+      close: { emoji:'🌙', name:'Closing', short:'CLOS', time:'3:00 PM – 11:00 PM', color:'#60a5fa', blocks:[
         { t:'8:00 AM', c:'wake', n:'Wake Up', d:'Long morning ahead.' },
         { t:'9:00 AM', c:'meal', n:'Breakfast', d:'Take time.' },
         { t:'10:00 AM', c:'gym', n:'Gym', d:'Morning is the only window.' },
@@ -774,7 +1370,7 @@ const PRESETS = {
         { t:'11:30 PM', c:'drive', n:'🚗 Drive Home', d:'Decompress.' },
         { t:'12:00 AM', c:'sleep', n:'Sleep', d:'Late night.' },
       ]},
-      off: { emoji:'🟢', name:'Day Off', short:'OFF', time:'No shift', color:'#4aad6a', blocks:[
+      off: { emoji:'🟢', name:'Day Off', short:'OFF', time:'No shift', color:'#34d399', blocks:[
         { t:'Natural', c:'wake', n:'Wake Up — No Alarm', d:'Sleep in.' },
         { t:'Morning', c:'meal', n:'Slow Breakfast', d:'Real meal.' },
         { t:'Mid AM', c:'gym', n:'Long Workout', d:'No rush.' },
@@ -789,7 +1385,7 @@ const PRESETS = {
     name: 'Custom / Other',
     desc: 'Start from scratch and build your own shifts',
     shifts: {
-      work: { emoji:'💼', name:'Work', short:'WORK', time:'9 AM – 5 PM', color:'#e03128', blocks:[
+      work: { emoji:'💼', name:'Work', short:'WORK', time:'9 AM – 5 PM', color:'#3b82f6', blocks:[
         { t:'7:00 AM', c:'wake', n:'Wake Up', d:'' },
         { t:'8:30 AM', c:'drive', n:'Commute', d:'' },
         { t:'9:00 AM', c:'work', n:'Work', d:'' },
@@ -797,7 +1393,7 @@ const PRESETS = {
         { t:'7:00 PM', c:'meal', n:'Dinner', d:'' },
         { t:'10:30 PM', c:'sleep', n:'Sleep', d:'' },
       ]},
-      off: { emoji:'🟢', name:'Day Off', short:'OFF', time:'No work', color:'#4aad6a', blocks:[
+      off: { emoji:'🟢', name:'Day Off', short:'OFF', time:'No work', color:'#34d399', blocks:[
         { t:'Morning', c:'wake', n:'Wake Up', d:'' },
         { t:'Evening', c:'eve', n:'Personal Time', d:'' },
         { t:'10:30 PM', c:'sleep', n:'Sleep', d:'' },
@@ -822,6 +1418,10 @@ let shiftAssignments = JSON.parse(localStorage.getItem(SHIFTS_KEY) || '{}');
 let variantAssignments = JSON.parse(localStorage.getItem(VARIANTS_KEY) || '{}');
 let done = JSON.parse(localStorage.getItem(DONE_KEY) || '{}');
 let dayNotes = JSON.parse(localStorage.getItem(NOTES_KEY) || '{}');
+let prefs = Object.assign(
+  { theme:'dark', home:'month' },
+  JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')
+);
 let editingEventId = null;
 let chosenCat = 'personal';
 let chosenRecur = 'none';
@@ -873,6 +1473,8 @@ function getEffectiveShift(shiftDef, dateStr) {
 const saveDone = () => localStorage.setItem(DONE_KEY, JSON.stringify(done));
 const saveNotes = () => localStorage.setItem(NOTES_KEY, JSON.stringify(dayNotes));
 const saveShiftDefs = () => localStorage.setItem(SHIFTDEF_KEY, JSON.stringify(SHIFTS));
+const savePrefs = () => localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+function applyTheme() { document.documentElement.setAttribute('data-theme', prefs.theme); }
 const fmt = (d) => d.toISOString().slice(0,10);
 const catOf = (id) => CATEGORIES.find(c => c.id === id) || CATEGORIES[5];
 const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -888,6 +1490,37 @@ function formatTime(t) {
   const ap = h >= 12 ? 'PM' : 'AM';
   const h12 = h % 12 || 12;
   return `${h12}:${String(mm).padStart(2,'0')} ${ap}`;
+}
+
+// Build "9:15 AM – 5:45 PM" from two HH:MM values
+function buildTimeLabel(start, end) {
+  if (!start && !end) return '';
+  if (start && !end) return formatTime(start);
+  if (!start && end) return `Until ${formatTime(end)}`;
+  return `${formatTime(start)} – ${formatTime(end)}`;
+}
+
+// Parse "9:15 AM – 5:45 PM" back to HH:MM for a time input
+function timeLabelToInputs(label) {
+  if (!label) return { start: '', end: '' };
+  // try to split on – or -
+  const parts = label.split(/\s*[–\-]\s*/);
+  if (parts.length >= 2) {
+    return { start: timeToInputVal(parts[0].trim()), end: timeToInputVal(parts[1].trim()) };
+  }
+  return { start: timeToInputVal(label.trim()), end: '' };
+}
+
+// Convert "9:15 AM" to "09:15" for <input type="time">
+function timeToInputVal(s) {
+  if (!s) return '';
+  const m = s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (!m) return '';
+  let h = parseInt(m[1]), min = parseInt(m[2]);
+  const ap = (m[3] || '').toUpperCase();
+  if (ap === 'PM' && h < 12) h += 12;
+  if (ap === 'AM' && h === 12) h = 0;
+  return `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
 }
 function parseTimeStr(s) {
   // Returns minutes since midnight, or null if not parseable
@@ -944,18 +1577,35 @@ function renderMonth() {
     const isToday = dateStr === today;
     const shiftId = shiftAssignments[dateStr];
     const shiftDef = shiftId ? SHIFTS[shiftId] : null;
+
+    // Determine the effective time label (variant-aware)
+    let startTimeLabel = '';
+    if (shiftDef) {
+      const eff = getEffectiveShift(shiftDef, dateStr);
+      const timeStr = eff ? eff.time : shiftDef.time;
+      // parse "9:15 AM – 5:45 PM" → "9:15"
+      if (timeStr && timeStr !== 'No shift' && timeStr !== 'Variable' && timeStr !== 'Standby') {
+        const m2 = timeStr.match(/^(\d{1,2}:\d{2})\s*(AM|PM)?/i);
+        if (m2) startTimeLabel = m2[1] + (m2[2] ? ' ' + m2[2].toUpperCase() : '');
+      }
+    }
+
     const shiftBadge = shiftDef
       ? `<div class="cell-shift" style="background:${shiftDef.color}">${(shiftDef.short || '').slice(0,3)}</div>`
       : '';
+    const startTime = startTimeLabel
+      ? `<div class="cell-start-time">${startTimeLabel}</div>`
+      : '';
     const dots = [...new Set(dayEvents.map(e => e.cat))].slice(0, 4)
       .map(cat => `<span class="dot" style="background:${catOf(cat).color}"></span>`).join('');
-    const noteMark = dayNotes[dateStr] && !dots ? '<div class="cell-note-mark"></div>' : '';
+    const noteMark = dayNotes[dateStr] && !dots && !startTimeLabel ? '<div class="cell-note-mark"></div>' : '';
     const isBulk = bulkMode && bulkSelected.has(dateStr);
     grid.insertAdjacentHTML('beforeend', `
       <div class="cell ${isToday ? 'today' : ''} ${isBulk ? 'bulk-selected' : ''}" data-date="${dateStr}">
         <div class="cell-num">${d}</div>
         ${shiftBadge}
         <div class="cell-dots">${dots}</div>
+        ${startTime}
         ${noteMark}
       </div>
     `);
@@ -1008,14 +1658,19 @@ function enterBulkMode() {
   $('bulkBar').classList.add('on');
   renderBulkShifts();
   updateBulkBar();
-  renderMonth();
+  setView('month');
   closeImport();
 }
 function exitBulkMode() {
   bulkMode = false;
   bulkSelected.clear();
   $('bulkBar').classList.remove('on');
-  renderMonth();
+  refreshActiveView();
+}
+function refreshActiveView() {
+  if (currentView === 'today') renderToday();
+  else if (currentView === 'insights') renderInsights();
+  else renderMonth();
 }
 function renderBulkShifts() {
   const row = $('bulkShifts');
@@ -1046,13 +1701,11 @@ function openSheet(dateStr) {
   $('sheetTitle').textContent = `${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
   renderSheet();
   $('sheetBg').classList.add('on');
-  document.body.style.overflow = 'hidden';
 }
 function closeSheet() {
   $('sheetBg').classList.remove('on');
-  document.body.style.overflow = '';
   openDate = null;
-  renderMonth();
+  refreshActiveView();
 }
 
 function computeNowUp(blocks) {
@@ -1398,12 +2051,14 @@ function saveEvent() {
   }
   saveEvents();
   closeEventModal();
-  if (openDate) {
+  if ($('sheetBg').classList.contains('on') && openDate) {
     openDate = date;
     const d = new Date(date + 'T00:00:00');
     $('sheetDow').textContent = dayNames[d.getDay()];
     $('sheetTitle').textContent = `${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
     renderSheet();
+  } else if (currentView === 'today') {
+    renderToday();
   }
 }
 
@@ -1412,7 +2067,8 @@ function deleteCurrentEvent() {
   events = events.filter(e => e.id !== editingEventId);
   saveEvents();
   closeEventModal();
-  if (openDate) renderSheet();
+  if ($('sheetBg').classList.contains('on') && openDate) renderSheet();
+  else if (currentView === 'today') renderToday();
 }
 
 /* ─────────────────────────────────────── IMPORT MODAL */
@@ -1475,7 +2131,7 @@ function applyPattern() {
   }
   saveShiftAssignments();
   closeImport();
-  renderMonth();
+  refreshActiveView();
   alert(`Filled ${count} days.`);
 }
 
@@ -1540,20 +2196,18 @@ function applyPaste() {
   ok.forEach(r => { shiftAssignments[r.date] = r.shift; });
   saveShiftAssignments();
   closeImport();
-  renderMonth();
+  refreshActiveView();
   alert(`Imported ${ok.length} shifts.`);
 }
 
 /* ─────────────────────────────────────── SETTINGS / SHIFT BUILDER */
 function openSettings() {
   $('settingsBg').classList.add('on');
-  document.body.style.overflow = 'hidden';
   renderBuilder();
 }
 function closeSettings() {
   $('settingsBg').classList.remove('on');
-  document.body.style.overflow = '';
-  renderMonth();
+  refreshActiveView();
 }
 
 function renderBuilder() {
@@ -1603,17 +2257,39 @@ function openShiftEditor(id) {
       emoji: '⚪', name: '', short: '', time: '',
       color: SHIFT_COLORS[0],
       blocks: [{ t:'9:00 AM', c:'work', n:'New Block', d:'' }],
+      variants: [],
     };
     $('shiftEditorTitle').textContent = 'New Shift';
   }
+  // ensure variants array always exists
+  if (!editingShiftDraft.variants) editingShiftDraft.variants = [];
   $('shiftEmoji').value = editingShiftDraft.emoji;
   $('shiftShort').value = editingShiftDraft.short;
   $('shiftName').value = editingShiftDraft.name;
-  $('shiftTime').value = editingShiftDraft.time;
+  // Populate start/end time pickers from existing time label
+  const { start: ts, end: te } = timeLabelToInputs(editingShiftDraft.time || '');
+  $('shiftTimeStart').value = ts;
+  $('shiftTimeEnd').value = te;
+  updateShiftTimePreview();
   chosenShiftColor = editingShiftDraft.color;
   renderColorPicker();
   renderBlockList();
+  renderVariantEditorList();
   $('shiftBg').classList.add('on');
+}
+
+function updateShiftTimePreview() {
+  const s = $('shiftTimeStart').value;
+  const e = $('shiftTimeEnd').value;
+  const label = buildTimeLabel(s, e);
+  const el = $('shiftTimePreview');
+  if (label) {
+    el.textContent = label;
+    el.classList.remove('empty');
+  } else {
+    el.textContent = 'Pick start & end time';
+    el.classList.add('empty');
+  }
 }
 
 function closeShiftEditor() {
@@ -1641,7 +2317,7 @@ function renderBlockList() {
     <div>
       <div class="block-edit">
         <div class="block-edit-cat-dot" style="background:${CC[b.c] || '#38404f'}"></div>
-        <input type="text" class="block-edit-time" data-bidx="${i}" data-bfield="t" value="${escapeHtml(b.t)}" placeholder="Time">
+        <input type="time" class="block-time-pick" data-bidx="${i}" data-bfield="t" value="${escapeHtml(timeToInputVal(b.t) || b.t)}" title="${escapeHtml(b.t)}">
         <input type="text" class="block-edit-name" data-bidx="${i}" data-bfield="n" value="${escapeHtml(b.n)}" placeholder="Block name">
         <select class="block-edit-cat-sel" data-bidx="${i}" data-bfield="c">
           ${Object.entries(CC_LABELS).map(([k,l]) =>
@@ -1655,11 +2331,17 @@ function renderBlockList() {
     </div>
   `).join('');
   list.querySelectorAll('[data-bfield]').forEach(input => {
-    input.addEventListener('input', () => {
+    const evType = input.type === 'time' ? 'change' : 'input';
+    input.addEventListener(evType, () => {
       const i = +input.dataset.bidx;
       const f = input.dataset.bfield;
-      editingShiftDraft.blocks[i][f] = input.value;
-      if (f === 'c') renderBlockList(); // update dot color
+      // for time inputs, convert HH:MM → "9:15 AM" for storage
+      if (f === 't' && input.type === 'time' && input.value) {
+        editingShiftDraft.blocks[i][f] = formatTime(input.value);
+      } else {
+        editingShiftDraft.blocks[i][f] = input.value;
+      }
+      if (f === 'c') renderBlockList();
     });
   });
   list.querySelectorAll('[data-bdel]').forEach(btn => {
@@ -1672,18 +2354,169 @@ function renderBlockList() {
   });
 }
 
+function renderVariantEditorList() {
+  const list = $('variantEditorList');
+  if (!list) return;
+  const variants = editingShiftDraft.variants || [];
+
+  list.innerHTML = variants.map((v, vi) => {
+    const { start: vs, end: ve } = timeLabelToInputs(v.time || '');
+    const preview = buildTimeLabel(vs, ve) || (v.time || '');
+    return `
+    <div class="variant-editor-card" data-vi="${vi}">
+      <div class="variant-editor-hd">
+        <input type="text" class="variant-editor-label-input" data-vfield="label" data-vi="${vi}"
+          value="${escapeHtml(v.label || '')}" placeholder="e.g. 9:15"
+          style="max-width:72px">
+        <div class="variant-time-pair">
+          <input type="time" class="variant-time-start" data-vi="${vi}" value="${vs}">
+          <span class="variant-time-sep">→</span>
+          <input type="time" class="variant-time-end" data-vi="${vi}" value="${ve}">
+        </div>
+        <button class="variant-editor-toggle ${v._open ? 'open' : ''}" data-vtoggle="${vi}">
+          ${(v.blocks || []).length} blk ${v._open ? '▲' : '▼'}
+        </button>
+        <button class="variant-editor-del" data-vdel="${vi}">×</button>
+      </div>
+      <div class="variant-blocks-wrap ${v._open ? 'open' : ''}">
+        <div class="block-list" id="vblock-list-${vi}"></div>
+        <button class="builder-add" data-vadd-block="${vi}" style="margin-top:4px">+ Add Block</button>
+      </div>
+    </div>
+  `}).join('');
+
+  // Render each variant's block list
+  variants.forEach((v, vi) => {
+    renderVariantBlockList(vi);
+  });
+
+  // Label input
+  list.querySelectorAll('[data-vfield="label"]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      editingShiftDraft.variants[+inp.dataset.vi].label = inp.value;
+    });
+  });
+
+  // Time pair inputs → auto-build time label
+  list.querySelectorAll('.variant-time-start, .variant-time-end').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const vi = +inp.dataset.vi;
+      const card = list.querySelector(`[data-vi="${vi}"]`);
+      const s = card.querySelector('.variant-time-start').value;
+      const e = card.querySelector('.variant-time-end').value;
+      editingShiftDraft.variants[vi].time = buildTimeLabel(s, e);
+    });
+  });
+
+  // Toggle expand/collapse
+  list.querySelectorAll('[data-vtoggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const vi = +btn.dataset.vtoggle;
+      editingShiftDraft.variants[vi]._open = !editingShiftDraft.variants[vi]._open;
+      renderVariantEditorList();
+    });
+  });
+
+  // Delete variant
+  list.querySelectorAll('[data-vdel]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      editingShiftDraft.variants.splice(+btn.dataset.vdel, 1);
+      renderVariantEditorList();
+    });
+  });
+
+  // Add block to variant
+  list.querySelectorAll('[data-vadd-block]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const vi = +btn.dataset.vaddBlock;
+      if (!editingShiftDraft.variants[vi].blocks) editingShiftDraft.variants[vi].blocks = [];
+      editingShiftDraft.variants[vi].blocks.push({ t:'9:00 AM', c:'work', n:'New Block', d:'' });
+      editingShiftDraft.variants[vi]._open = true;
+      renderVariantEditorList();
+    });
+  });
+}
+
+function renderVariantBlockList(vi) {
+  const wrap = $(`vblock-list-${vi}`);
+  if (!wrap) return;
+  const blocks = editingShiftDraft.variants[vi].blocks || [];
+
+  wrap.innerHTML = blocks.map((b, i) => `
+    <div>
+      <div class="block-edit">
+        <div class="block-edit-cat-dot" style="background:${CC[b.c] || '#94a3b8'}"></div>
+        <input type="time" class="block-time-pick" data-vbi="${vi}" data-bi="${i}" data-bfield="t"
+          value="${escapeHtml(timeToInputVal(b.t) || b.t)}" title="${escapeHtml(b.t)}">
+        <input type="text" class="block-edit-name" data-vbi="${vi}" data-bi="${i}" data-bfield="n"
+          value="${escapeHtml(b.n)}" placeholder="Block name">
+        <select class="block-edit-cat-sel" data-vbi="${vi}" data-bi="${i}" data-bfield="c">
+          ${Object.entries(CC_LABELS).map(([k,l]) =>
+            `<option value="${k}" ${b.c === k ? 'selected' : ''}>${l}</option>`).join('')}
+        </select>
+        <button class="block-edit-del" data-vbi="${vi}" data-bdel="${i}">×</button>
+      </div>
+      <div class="block-detail-row">
+        <input type="text" class="block-detail-input" data-vbi="${vi}" data-bi="${i}" data-bfield="d"
+          value="${escapeHtml(b.d || '')}" placeholder="Optional detail / note">
+      </div>
+    </div>
+  `).join('');
+
+  // Bind inputs
+  wrap.querySelectorAll('[data-bfield]').forEach(input => {
+    const evType = input.type === 'time' ? 'change' : 'input';
+    input.addEventListener(evType, () => {
+      const vi2 = +input.dataset.vbi;
+      const bi = +input.dataset.bi;
+      const f = input.dataset.bfield;
+      if (f === 't' && input.type === 'time' && input.value) {
+        editingShiftDraft.variants[vi2].blocks[bi][f] = formatTime(input.value);
+      } else {
+        editingShiftDraft.variants[vi2].blocks[bi][f] = input.value;
+      }
+      if (f === 'c') renderVariantBlockList(vi2);
+    });
+  });
+
+  // Delete block from variant
+  wrap.querySelectorAll('[data-bdel]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const vi2 = +btn.dataset.vbi;
+      const bi = +btn.dataset.bdel;
+      if (editingShiftDraft.variants[vi2].blocks.length <= 1) {
+        alert('Keep at least one block.'); return;
+      }
+      editingShiftDraft.variants[vi2].blocks.splice(bi, 1);
+      renderVariantBlockList(vi2);
+    });
+  });
+}
+
 function saveShiftDef() {
   const e = $('shiftEmoji').value.trim() || '⚪';
   const sh = $('shiftShort').value.trim().toUpperCase() || 'NEW';
   const nm = $('shiftName').value.trim();
-  const tm = $('shiftTime').value.trim();
+  const tm = buildTimeLabel($('shiftTimeStart').value, $('shiftTimeEnd').value);
   if (!nm) { alert('Shift name required.'); return; }
-  if (!tm) { alert('Time label required.'); return; }
+  if (!tm) { alert('Pick a start or end time.'); return; }
   editingShiftDraft.emoji = e;
   editingShiftDraft.short = sh;
   editingShiftDraft.name = nm;
   editingShiftDraft.time = tm;
   editingShiftDraft.color = chosenShiftColor;
+
+  // strip UI-only _open flags from variants before saving
+  if (editingShiftDraft.variants) {
+    editingShiftDraft.variants = editingShiftDraft.variants
+      .filter(v => v.label && v.label.trim()) // drop blank variants
+      .map(({ _open, ...v }) => ({
+        ...v,
+        id: v.id || ('v_' + Math.random().toString(36).slice(2,8)),
+        time: v.time || tm,
+        blocks: v.blocks && v.blocks.length ? v.blocks : editingShiftDraft.blocks,
+      }));
+  }
 
   const id = editingShiftId || ('s_' + Math.random().toString(36).slice(2,8));
   SHIFTS[id] = editingShiftDraft;
@@ -1720,11 +2553,524 @@ function finishOnboarding() {
   saveShiftDefs();
   localStorage.setItem(ONBOARD_KEY, 'true');
   $('onboardBg').classList.remove('on');
-  renderMonth();
+  setView(prefs.home === 'today' ? 'today' : 'month');
 }
 
-/* ─────────────────────────────────────── INIT */
+/* ─────────────────────────────────────── VIEW MANAGEMENT */
+let currentView = 'month';
+let todayViewDate = fmt(new Date()); // separate from openDate (sheet)
+let insightsPeriod = 'week';
+
+function setView(view) {
+  currentView = view;
+  document.querySelectorAll('.vs-btn').forEach(b => b.classList.toggle('on', b.dataset.view === view));
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  $('page-' + view).style.display = 'block';
+
+  // Hide month nav + stats tools on non-month views
+  const showMonthNav = view === 'month';
+  $('prevMonth').style.display = showMonthNav ? '' : 'none';
+  $('nextMonth').style.display = showMonthNav ? '' : 'none';
+
+  if (view === 'today') {
+    todayViewDate = fmt(new Date());
+    renderToday();
+  } else if (view === 'month') {
+    renderMonth();
+  } else if (view === 'insights') {
+    renderInsights();
+  }
+}
+
+/* ─────────────────────────────────────── TODAY PAGE */
+function renderToday() {
+  const dateStr = todayViewDate;
+  const todayStr = fmt(new Date());
+  const d = new Date(dateStr + 'T00:00:00');
+  const shiftId = shiftAssignments[dateStr];
+  const baseShiftDef = shiftId ? SHIFTS[shiftId] : null;
+  const shiftDef = getEffectiveShift(baseShiftDef, dateStr);
+  const dayDone = done[dateStr] || {};
+  const dayEvents = eventsOnDate(dateStr);
+
+  // update header title
+  $('monthTitle').textContent = dateStr === todayStr ? 'Today' : dayShort[d.getDay()];
+
+  let html = '';
+
+  html += `
+    <div class="today-hd">
+      <div class="today-eyebrow">${dateStr === todayStr ? 'Today · ' : ''}${dayNames[d.getDay()]}</div>
+      <div class="today-title">${monthNames[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}</div>
+      <div class="today-nav">
+        <button class="today-arrow" id="todayPrev">‹</button>
+        <button class="today-jump" id="todayJump">${dateStr === todayStr ? 'Jump to Date' : 'Back to Today'}</button>
+        <button class="today-arrow" id="todayNext">›</button>
+      </div>
+    </div>
+  `;
+
+  // Day note
+  html += `
+    <div class="day-note">
+      <div class="day-note-icon">✎</div>
+      <textarea class="day-note-input" id="todayNoteInput" placeholder="Quick note for the day..."
+        rows="1" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${escapeHtml(dayNotes[dateStr] || '')}</textarea>
+    </div>
+  `;
+
+  // Shift chips
+  html += `<div class="shift-chips">`;
+  Object.entries(SHIFTS).forEach(([k, s]) => {
+    const active = shiftId === k;
+    html += `<button class="shift-chip" data-tpick="${k}" style="${active
+      ? `border-color:${s.color}55;background:${s.color}22;color:${s.color}`
+      : ''}">${s.emoji} ${s.name}</button>`;
+  });
+  html += `</div>`;
+
+  if (shiftDef) {
+    html += `<div class="shift-badge" style="background:${shiftDef.color}18;border:1px solid ${shiftDef.color}44;color:${shiftDef.color}">
+      ${shiftDef.emoji} ${shiftDef.name} — ${escapeHtml(shiftDef.time)}
+    </div>`;
+
+    if (baseShiftDef.variants && baseShiftDef.variants.length) {
+      const activeVid = shiftDef.activeVariantId;
+      html += `<div class="variant-row"><span class="variant-lbl">Start:</span>`;
+      baseShiftDef.variants.forEach(v => {
+        const on = v.id === activeVid;
+        html += `<button class="variant-chip" data-tvariant="${v.id}" style="${on
+          ? `border-color:${baseShiftDef.color}55;background:${baseShiftDef.color}22;color:${baseShiftDef.color}`
+          : ''}">${escapeHtml(v.label)}</button>`;
+      });
+      html += `</div>`;
+    }
+
+    const blocks = shiftDef.blocks || [];
+    const total = blocks.length;
+    const completed = blocks.filter((_, i) => dayDone[i]).length;
+    const pct = total ? Math.round((completed/total) * 100) : 0;
+
+    if (dateStr === todayStr) {
+      const nowBlock = computeNowUp(blocks);
+      if (nowBlock) {
+        html += `<div class="now-up">
+          <div class="now-up-pulse"></div>
+          <div class="now-up-body">
+            <div class="now-up-lbl">Right Now</div>
+            <div class="now-up-title">${escapeHtml(nowBlock.n)}</div>
+          </div>
+        </div>`;
+      }
+    }
+
+    html += `<div class="day-progress">
+      <div class="dp-row"><span class="dp-lbl">Day Progress</span><span class="dp-val">${completed} / ${total}</span></div>
+      <div class="dp-bar"><div class="dp-fill" style="width:${pct}%"></div></div>
+    </div>`;
+
+    html += `<div class="section-lbl">
+      <span>Your Stack</span>
+      ${completed > 0 ? `<button class="lbl-act" id="todayResetDone">Reset</button>` : ''}
+    </div>
+    <div class="timeline">`;
+
+    blocks.forEach((b, i) => {
+      const dc = CC[b.c] || '#38404f';
+      const isDr = b.c === 'drive';
+      const isWk = b.c === 'work';
+      const isDone = !!dayDone[i];
+      const dotShadow = isDr ? 'none' : `0 0 6px ${dc}`;
+      html += `<div class="tl-row ${isDone ? 'done' : ''}" data-tblock="${i}">
+        <div class="tl-time">${b.t}</div>
+        <div class="tl-axis"><div class="tl-dot" style="background:${dc};box-shadow:${dotShadow}"></div></div>
+        <div class="tl-card-wrap">
+          <div class="tl-card ${isDr ? 'dr' : ''} ${isWk ? 'wk' : ''}"
+            style="border-left:3px solid ${dc};${isWk ? `border-color:${dc}33;` : ''}">
+            <div class="tl-check">${isDone ? '✓' : ''}</div>
+            <div class="tl-body">
+              <div class="tl-name">${escapeHtml(b.n)}</div>
+              ${b.d ? `<div class="tl-detail">${escapeHtml(b.d)}</div>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  } else {
+    html += `<div class="no-shift-card">
+      <div class="no-shift-title">No shift assigned</div>
+      <div class="no-shift-sub">Tap a shift chip above to load your stack</div>
+    </div>`;
+  }
+
+  // Events
+  html += `<div class="section-lbl">
+    <span>Additional Events</span>
+    <button class="lbl-act" id="todayAddEvent">+ Add</button>
+  </div>`;
+  if (dayEvents.length) {
+    html += dayEvents.map(e => {
+      const cat = catOf(e.cat);
+      const time = e.time ? formatTime(e.time) : 'All day';
+      const recurBadge = e.recur && e.recur !== 'none' ? `<span class="event-recur">${e.recur.toUpperCase()}</span>` : '';
+      return `<div class="event" data-tevent-id="${e.id}">
+        <div class="event-bar" style="background:${cat.color}"></div>
+        <div class="event-time">${time}</div>
+        <div class="event-body">
+          <div class="event-title">${escapeHtml(e.title)}${recurBadge}</div>
+          <div class="event-cat">${cat.label}${e.notes ? ' · ' + escapeHtml(e.notes) : ''}</div>
+        </div>
+        <button class="event-del" data-tdel-event="${e.id}">×</button>
+      </div>`;
+    }).join('');
+  } else {
+    html += `<div class="empty-state">No extra events. Tap +Add for appointments.</div>`;
+  }
+
+  // Tomorrow preview (only on actual today)
+  if (dateStr === todayStr) {
+    const tomorrow = new Date(d); tomorrow.setDate(d.getDate() + 1);
+    const tomStr = fmt(tomorrow);
+    const tomShiftId = shiftAssignments[tomStr];
+    const tomShift = tomShiftId ? getEffectiveShift(SHIFTS[tomShiftId], tomStr) : null;
+    html += `<div class="section-lbl"><span>Tomorrow</span></div>
+      <div class="next-up-card" id="goTomorrow">
+        <div style="flex:1">
+          <div class="next-up-lbl">${dayShort[tomorrow.getDay()]} · ${monthNames[tomorrow.getMonth()].slice(0,3)} ${tomorrow.getDate()}</div>
+          <div class="next-up-title">${tomShift ? `${tomShift.emoji} ${tomShift.name}` : 'No shift assigned'}</div>
+          ${tomShift ? `<div class="next-up-time">${escapeHtml(tomShift.time)}</div>` : ''}
+        </div>
+        <div class="next-up-arrow">›</div>
+      </div>`;
+  }
+
+  $('todayBody').innerHTML = html;
+  bindTodayActions();
+}
+
+function bindTodayActions() {
+  $('todayPrev').addEventListener('click', () => {
+    const d = new Date(todayViewDate + 'T00:00:00');
+    d.setDate(d.getDate() - 1);
+    todayViewDate = fmt(d);
+    renderToday();
+  });
+  $('todayNext').addEventListener('click', () => {
+    const d = new Date(todayViewDate + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    todayViewDate = fmt(d);
+    renderToday();
+  });
+  $('todayJump').addEventListener('click', () => {
+    if (todayViewDate !== fmt(new Date())) {
+      todayViewDate = fmt(new Date());
+      renderToday();
+    } else {
+      // open month view to pick a date
+      setView('month');
+    }
+  });
+  const goTom = $('goTomorrow');
+  if (goTom) goTom.addEventListener('click', () => {
+    const d = new Date(todayViewDate + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    todayViewDate = fmt(d);
+    renderToday();
+  });
+
+  // Note auto-save
+  const note = $('todayNoteInput');
+  if (note) {
+    note.style.height = 'auto';
+    note.style.height = note.scrollHeight + 'px';
+    let timer;
+    note.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const v = note.value.trim();
+        if (v) dayNotes[todayViewDate] = v;
+        else delete dayNotes[todayViewDate];
+        saveNotes();
+      }, 300);
+    });
+  }
+
+  // Shift pick
+  document.querySelectorAll('[data-tpick]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.tpick;
+      if (shiftAssignments[todayViewDate] === id) {
+        delete shiftAssignments[todayViewDate];
+        delete done[todayViewDate];
+        delete variantAssignments[todayViewDate];
+        saveDone(); saveVariantAssignments();
+      } else {
+        shiftAssignments[todayViewDate] = id;
+        delete variantAssignments[todayViewDate];
+        saveVariantAssignments();
+      }
+      saveShiftAssignments();
+      renderToday();
+    });
+  });
+
+  // Variant pick
+  document.querySelectorAll('[data-tvariant]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      variantAssignments[todayViewDate] = btn.dataset.tvariant;
+      delete done[todayViewDate];
+      saveVariantAssignments(); saveDone();
+      renderToday();
+    });
+  });
+
+  // Block toggle
+  document.querySelectorAll('[data-tblock]').forEach(b => {
+    b.addEventListener('click', () => {
+      const i = b.dataset.tblock;
+      done[todayViewDate] = done[todayViewDate] || {};
+      if (done[todayViewDate][i]) delete done[todayViewDate][i];
+      else done[todayViewDate][i] = true;
+      if (Object.keys(done[todayViewDate]).length === 0) delete done[todayViewDate];
+      saveDone();
+      renderToday();
+    });
+  });
+
+  const reset = $('todayResetDone');
+  if (reset) reset.addEventListener('click', () => {
+    delete done[todayViewDate]; saveDone(); renderToday();
+  });
+
+  const addBtn = $('todayAddEvent');
+  if (addBtn) addBtn.addEventListener('click', () => {
+    // reuse event modal; set openDate temporarily
+    openDate = todayViewDate;
+    openEventModal();
+  });
+
+  document.querySelectorAll('[data-tdel-event]').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      events = events.filter(e => e.id !== btn.dataset.tdelEvent);
+      saveEvents();
+      renderToday();
+    });
+  });
+  document.querySelectorAll('[data-tevent-id]').forEach(row => {
+    row.addEventListener('click', (ev) => {
+      if (ev.target.closest('[data-tdel-event]')) return;
+      openDate = todayViewDate;
+      openEventModal(row.dataset.teventId);
+    });
+  });
+}
+
+/* ─────────────────────────────────────── INSIGHTS */
+function renderInsights() {
+  $('monthTitle').textContent = 'Insights';
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  let start, end, periodLabel;
+  if (insightsPeriod === 'week') {
+    start = new Date(today); start.setDate(today.getDate() - today.getDay()); // Sunday
+    end = new Date(start); end.setDate(start.getDate() + 6);
+    periodLabel = 'This Week';
+  } else if (insightsPeriod === 'month') {
+    start = new Date(today.getFullYear(), today.getMonth(), 1);
+    end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    periodLabel = monthNames[today.getMonth()];
+  } else { // 30d
+    end = new Date(today);
+    start = new Date(today); start.setDate(today.getDate() - 29);
+    periodLabel = 'Last 30 Days';
+  }
+
+  // Collect data
+  const days = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    days.push(fmt(d));
+  }
+
+  let shiftsWorked = 0;
+  let daysOff = 0;
+  let blocksDone = 0;
+  let blocksTotal = 0;
+  const shiftCounts = {};
+  const catCounts = {}; // category → completed count
+  let currentStreak = 0;
+  let bestStreak = 0;
+  let runStreak = 0;
+  let notesCount = 0;
+
+  // Streak: consecutive days where any block was completed (or shift was off)
+  // We'll calculate from today backward for current streak
+  for (const ds of days) {
+    const sid = shiftAssignments[ds];
+    if (sid && SHIFTS[sid]) {
+      const sh = SHIFTS[sid];
+      if (/off/i.test(sh.name)) daysOff++;
+      else shiftsWorked++;
+      shiftCounts[sid] = (shiftCounts[sid] || 0) + 1;
+
+      const eff = getEffectiveShift(sh, ds);
+      const blocks = (eff && eff.blocks) || sh.blocks || [];
+      const dayDone = done[ds] || {};
+      const doneCount = blocks.filter((_, i) => dayDone[i]).length;
+      blocksDone += doneCount;
+      blocksTotal += blocks.length;
+
+      blocks.forEach((b, i) => {
+        if (dayDone[i]) {
+          catCounts[b.c] = (catCounts[b.c] || 0) + 1;
+        }
+      });
+    }
+    if (dayNotes[ds]) notesCount++;
+  }
+
+  // Current streak (count from today backward through days where at least one block was done)
+  const todayKey = fmt(today);
+  const cd = new Date(today);
+  while (true) {
+    const k = fmt(cd);
+    const sid = shiftAssignments[k];
+    const hasDone = done[k] && Object.keys(done[k]).length > 0;
+    if (sid && SHIFTS[sid] && /off/i.test(SHIFTS[sid].name)) {
+      currentStreak++; // off days count as kept streak
+    } else if (hasDone) {
+      currentStreak++;
+    } else {
+      break;
+    }
+    cd.setDate(cd.getDate() - 1);
+    if (cd < new Date('2024-01-01')) break;
+  }
+
+  // Best streak across the period (rolling)
+  for (const ds of days) {
+    const sid = shiftAssignments[ds];
+    const hasDone = done[ds] && Object.keys(done[ds]).length > 0;
+    if (hasDone || (sid && SHIFTS[sid] && /off/i.test(SHIFTS[sid].name))) {
+      runStreak++;
+      bestStreak = Math.max(bestStreak, runStreak);
+    } else {
+      runStreak = 0;
+    }
+  }
+
+  const blockPct = blocksTotal ? Math.round((blocksDone/blocksTotal)*100) : 0;
+
+  let html = '';
+  html += `<div class="insights-hd">
+    <div class="insights-title">Insights</div>
+    <div class="insights-sub">${periodLabel} · ${days.length} days</div>
+    <div class="insights-period">
+      <button class="ip-btn ${insightsPeriod === 'week' ? 'on' : ''}" data-period="week">Week</button>
+      <button class="ip-btn ${insightsPeriod === 'month' ? 'on' : ''}" data-period="month">Month</button>
+      <button class="ip-btn ${insightsPeriod === '30d' ? 'on' : ''}" data-period="30d">30 Days</button>
+    </div>
+  </div>`;
+
+  // Big stats
+  html += `<div class="insight-grid">
+    <div class="insight-big">
+      <div class="insight-num">${shiftsWorked}</div>
+      <div class="insight-lbl">Shifts Worked</div>
+    </div>
+    <div class="insight-big">
+      <div class="insight-num">${daysOff}</div>
+      <div class="insight-lbl">Days Off</div>
+    </div>
+    <div class="insight-big">
+      <div class="insight-num">${blockPct}<span style="font-size:18px;color:var(--dm)">%</span></div>
+      <div class="insight-lbl">Stack Completion</div>
+      <div class="insight-sublbl">${blocksDone} of ${blocksTotal} blocks</div>
+    </div>
+    <div class="insight-big">
+      <div class="insight-num">${currentStreak}<span style="font-size:14px;color:var(--dm);margin-left:4px">days</span></div>
+      <div class="insight-lbl">Current Streak</div>
+      <div class="insight-sublbl">Best: ${bestStreak} days</div>
+    </div>
+  </div>`;
+
+  // Shift breakdown
+  if (Object.keys(shiftCounts).length) {
+    const maxCount = Math.max(...Object.values(shiftCounts));
+    html += `<div class="insight-big full">
+      <div class="insight-lbl" style="margin-bottom:6px">Shift Breakdown</div>
+      <div class="shift-breakdown">
+        ${Object.entries(shiftCounts).sort((a,b) => b[1] - a[1]).map(([sid, count]) => {
+          const s = SHIFTS[sid];
+          if (!s) return '';
+          const pct = (count / maxCount) * 100;
+          return `<div class="sb-row">
+            <div class="sb-name">${s.emoji} ${escapeHtml(s.name)}</div>
+            <div class="sb-bar-wrap"><div class="sb-bar" style="width:${pct}%;background:${s.color}"></div></div>
+            <div class="sb-count">${count}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Category breakdown
+  if (Object.keys(catCounts).length) {
+    html += `<div class="insight-big full">
+      <div class="insight-lbl">Blocks Completed by Type</div>
+      <div class="cat-breakdown">
+        ${Object.entries(catCounts).sort((a,b) => b[1] - a[1]).map(([cat, count]) => {
+          const color = CC[cat] || '#38404f';
+          const label = CC_LABELS[cat] || cat;
+          return `<div class="cb-pill">
+            <span class="cb-dot" style="background:${color}"></span>
+            ${label}
+            <span class="cb-count">${count}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  if (notesCount > 0) {
+    html += `<div class="insight-big full">
+      <div class="insight-num muted" style="font-size:20px">${notesCount}<span style="font-size:13px;margin-left:6px">notes logged</span></div>
+      <div class="insight-lbl">Day Journal</div>
+    </div>`;
+  }
+
+  if (shiftsWorked === 0 && daysOff === 0) {
+    html += `<div class="empty-state" style="margin:20px 0">No data yet for this period. Assign shifts and check off blocks to see insights.</div>`;
+  }
+
+  $('insightsBody').innerHTML = html;
+  document.querySelectorAll('[data-period]').forEach(b => {
+    b.addEventListener('click', () => {
+      insightsPeriod = b.dataset.period;
+      renderInsights();
+    });
+  });
+}
+
+/* ─────────────────────────────────────── PREFS */
+function openPrefs() {
+  $('prefsBg').classList.add('on');
+  renderPrefsButtons();
+}
+function closePrefs() { $('prefsBg').classList.remove('on'); }
+function renderPrefsButtons() {
+  document.querySelectorAll('[data-pref-home]').forEach(b => {
+    b.classList.toggle('on', b.dataset.prefHome === prefs.home);
+  });
+  document.querySelectorAll('[data-pref-theme]').forEach(b => {
+    b.classList.toggle('on', b.dataset.prefTheme === prefs.theme);
+  });
+}
+
+
 function init() {
+  applyTheme();
   // load shift defs or trigger onboarding
   const saved = localStorage.getItem(SHIFTDEF_KEY);
   const onboarded = localStorage.getItem(ONBOARD_KEY);
@@ -1734,7 +3080,7 @@ function init() {
     showOnboarding();
     return;
   }
-  renderMonth();
+  setView(prefs.home === 'today' ? 'today' : 'month');
 }
 
 // nav
@@ -1747,15 +3093,48 @@ $('nextMonth').addEventListener('click', () => {
   renderMonth();
 });
 $('todayBtn').addEventListener('click', () => {
-  viewDate = new Date();
-  renderMonth();
-  openSheet(fmt(new Date()));
+  if (currentView === 'today') {
+    todayViewDate = fmt(new Date());
+    renderToday();
+  } else if (currentView === 'insights') {
+    setView('today');
+  } else {
+    viewDate = new Date();
+    renderMonth();
+    openSheet(fmt(new Date()));
+  }
 });
 
 // tools
 $('btnImport').addEventListener('click', openImport);
 $('btnSettings').addEventListener('click', openSettings);
+$('btnPrefs').addEventListener('click', openPrefs);
 $('bulkCancel').addEventListener('click', exitBulkMode);
+
+// View switcher
+document.querySelectorAll('.vs-btn').forEach(b => {
+  b.addEventListener('click', () => setView(b.dataset.view));
+});
+
+// Prefs
+$('prefsClose').addEventListener('click', closePrefs);
+$('prefsDone').addEventListener('click', closePrefs);
+$('prefsBg').addEventListener('click', (e) => { if (e.target === $('prefsBg')) closePrefs(); });
+document.querySelectorAll('[data-pref-home]').forEach(b => {
+  b.addEventListener('click', () => {
+    prefs.home = b.dataset.prefHome;
+    savePrefs();
+    renderPrefsButtons();
+  });
+});
+document.querySelectorAll('[data-pref-theme]').forEach(b => {
+  b.addEventListener('click', () => {
+    prefs.theme = b.dataset.prefTheme;
+    savePrefs();
+    applyTheme();
+    renderPrefsButtons();
+  });
+});
 
 // sheet
 $('sheetClose').addEventListener('click', closeSheet);
@@ -1768,9 +3147,24 @@ $('settingsClose').addEventListener('click', closeSettings);
 $('shiftClose').addEventListener('click', closeShiftEditor);
 $('shiftCancel').addEventListener('click', closeShiftEditor);
 $('shiftSave').addEventListener('click', saveShiftDef);
+$('shiftTimeStart').addEventListener('change', updateShiftTimePreview);
+$('shiftTimeEnd').addEventListener('change', updateShiftTimePreview);
 $('addBlock').addEventListener('click', () => {
   editingShiftDraft.blocks.push({ t:'12:00 PM', c:'work', n:'New Block', d:'' });
   renderBlockList();
+});
+$('addVariant').addEventListener('click', () => {
+  if (!editingShiftDraft.variants) editingShiftDraft.variants = [];
+  // seed new variant's blocks from the base blocks so user has a starting point
+  const seedBlocks = JSON.parse(JSON.stringify(editingShiftDraft.blocks || []));
+  editingShiftDraft.variants.push({
+    id: 'v_' + Math.random().toString(36).slice(2,8),
+    label: '',
+    time: '',
+    blocks: seedBlocks,
+    _open: true,
+  });
+  renderVariantEditorList();
 });
 
 // event modal
