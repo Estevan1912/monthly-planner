@@ -1183,6 +1183,20 @@ input, textarea, select {
     </div>
     <div class="sheet-body">
       <div class="builder" id="builderRoot"></div>
+      <div style="border-top:1px solid var(--bd);margin-top:18px;padding-top:18px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);margin-bottom:10px">AI Scan</div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;line-height:1.5">
+          Anthropic API key — required for the photo scan feature.<br>
+          Get one free at <span style="font-family:var(--mono)">console.anthropic.com</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="password" id="apikeyInput" class="field-input"
+            placeholder="sk-ant-…" autocomplete="off" spellcheck="false"
+            style="flex:1;font-family:var(--mono);font-size:12px">
+          <button class="btn-primary" id="apikeySave" style="white-space:nowrap">Save</button>
+        </div>
+        <div id="apikeyStatus" style="font-size:11px;color:var(--tx3);margin-top:6px"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1396,6 +1410,7 @@ const SHIFTDEF_KEY = 'planner_shiftdefs_v2';
 const ONBOARD_KEY = 'planner_onboarded_v2';
 const PREFS_KEY   = 'planner_prefs_v2';
 const SCANNAME_KEY = 'planner_scanname_v2';
+const APIKEY_KEY   = 'planner_apikey_v1';
 
 const CC = {
   wake:  '#fbbf24',  // amber
@@ -2447,6 +2462,8 @@ function applyPaste() {
 function openSettings() {
   $('settingsBg').classList.add('on');
   renderBuilder();
+  $('apikeyInput').value = anthropicKey;
+  $('apikeyStatus').textContent = anthropicKey ? 'Key saved.' : '';
 }
 function closeSettings() {
   $('settingsBg').classList.remove('on');
@@ -2772,6 +2789,7 @@ function saveShiftDef() {
 /* ─────────────────────────────────────── SCAN FEATURE */
 
 let scanName = localStorage.getItem(SCANNAME_KEY) || '';
+let anthropicKey = localStorage.getItem(APIKEY_KEY) || '';
 let scanImageB64 = null;
 let scanImageType = 'image/jpeg';
 let scannedShifts = []; // [{ date, shiftId, label, time, color, removed }]
@@ -2896,13 +2914,19 @@ OUTPUT ONLY THIS JSON (no other text):
 If not found: {"employeeFound":false,"shifts":[],"notes":"NAME not found in schedule"}
 If unreadable: {"employeeFound":false,"shifts":[],"notes":"Image too blurry or dark"}`;
 
+  if (!anthropicKey) {
+    stepFn(3);
+    $(errId).innerHTML = `⚠️ <strong>No API key set.</strong><br><br>Open Settings and paste your Anthropic API key (get one free at <span style="font-family:var(--mono)">console.anthropic.com</span>).`;
+    return;
+  }
+
   let raw = '';
   try {
     let resp;
     try {
       resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-request-header': 'true' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1500,
@@ -2993,10 +3017,10 @@ If unreadable: {"employeeFound":false,"shifts":[],"notes":"Image too blurry or d
     const msg = err.message || String(err);
     if (msg === 'LOCAL_FILE') {
       $(errId).innerHTML = `
-        ⚠️ <strong>App must be hosted online to scan.</strong><br><br>
-        You're opening this as a local file — the browser blocks API calls for security.<br><br>
-        <strong>Fix:</strong> Deploy to Vercel and open your live URL. Scan will work from there.<br><br>
-        <span style="font-family:var(--mono);font-size:10px;color:var(--tx3)">cd ~/Downloads/mybudget_final<br>npm run build → git push → Vercel deploys</span>`;
+        ⚠️ <strong>Open via a local server, not a file.</strong><br><br>
+        Browsers block API calls from <span style="font-family:var(--mono)">file://</span> pages. Serve it locally instead:<br><br>
+        <span style="font-family:var(--mono);font-size:11px;background:var(--s1);padding:6px 10px;border-radius:6px;display:inline-block">npx serve ~/monthly-planner</span><br><br>
+        Then open <span style="font-family:var(--mono)">http://localhost:3000</span> in your browser.`;
       return;
     }
     const isCors = msg.toLowerCase().includes('failed to fetch') ||
@@ -3841,6 +3865,12 @@ $('sheetBg').addEventListener('click', (e) => { if (e.target === $('sheetBg')) c
 
 // settings
 $('settingsClose').addEventListener('click', closeSettings);
+$('apikeySave').addEventListener('click', () => {
+  anthropicKey = $('apikeyInput').value.trim();
+  localStorage.setItem(APIKEY_KEY, anthropicKey);
+  $('apikeyStatus').textContent = anthropicKey ? 'Key saved.' : 'Key cleared.';
+});
+$('apikeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('apikeySave').click(); });
 
 // shift editor
 $('shiftClose').addEventListener('click', closeShiftEditor);
