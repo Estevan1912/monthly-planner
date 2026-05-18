@@ -919,7 +919,31 @@ input, textarea, select {
   cursor: pointer; transition: background .12s;
 }
 .scan-preview-row:active { background: var(--s2); }
-.scan-preview-row.removed { opacity: .35; text-decoration: line-through; }
+.scan-preview-row.removed { opacity: .35; }
+.scan-preview-row.removed .scan-preview-date { text-decoration: line-through; }
+
+.scan-auto-badge {
+  display: inline-block; font-size: 9px; font-weight: 700;
+  font-family: var(--mono); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--amber); background: rgba(251,191,36,.12);
+  border: 1px solid rgba(251,191,36,.25); border-radius: 999px;
+  padding: 2px 7px; margin-bottom: 4px;
+}
+.scan-rename-input {
+  width: 100%; background: var(--s2); border: 1.5px solid var(--c);
+  border-radius: 7px; padding: 6px 10px;
+  color: var(--tx); font-family: var(--sans); font-size: 13px;
+  font-weight: 600; outline: none;
+  box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+  touch-action: manipulation;
+}
+.scan-week-hd {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--tx3);
+  padding: 16px 20px 6px;
+  border-top: 1px solid var(--bd);
+}
+.scan-week-hd:first-child { border-top: none; padding-top: 4px; }
 .scan-preview-dot {
   width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
 }
@@ -1183,20 +1207,6 @@ input, textarea, select {
     </div>
     <div class="sheet-body">
       <div class="builder" id="builderRoot"></div>
-      <div style="border-top:1px solid var(--bd);margin-top:18px;padding-top:18px">
-        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);margin-bottom:10px">AI Scan</div>
-        <div style="font-size:12px;color:var(--tx2);margin-bottom:10px;line-height:1.5">
-          Anthropic API key — required for the photo scan feature.<br>
-          Get one free at <span style="font-family:var(--mono)">console.anthropic.com</span>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="password" id="apikeyInput" class="field-input"
-            placeholder="sk-ant-…" autocomplete="off" spellcheck="false"
-            style="flex:1;font-family:var(--mono);font-size:12px">
-          <button class="btn-primary" id="apikeySave" style="white-space:nowrap">Save</button>
-        </div>
-        <div id="apikeyStatus" style="font-size:11px;color:var(--tx3);margin-top:6px"></div>
-      </div>
     </div>
   </div>
 </div>
@@ -1410,7 +1420,6 @@ const SHIFTDEF_KEY = 'planner_shiftdefs_v2';
 const ONBOARD_KEY = 'planner_onboarded_v2';
 const PREFS_KEY   = 'planner_prefs_v2';
 const SCANNAME_KEY = 'planner_scanname_v2';
-const APIKEY_KEY   = 'planner_apikey_v1';
 
 const CC = {
   wake:  '#fbbf24',  // amber
@@ -2462,8 +2471,6 @@ function applyPaste() {
 function openSettings() {
   $('settingsBg').classList.add('on');
   renderBuilder();
-  $('apikeyInput').value = anthropicKey;
-  $('apikeyStatus').textContent = anthropicKey ? 'Key saved.' : '';
 }
 function closeSettings() {
   $('settingsBg').classList.remove('on');
@@ -2789,7 +2796,6 @@ function saveShiftDef() {
 /* ─────────────────────────────────────── SCAN FEATURE */
 
 let scanName = localStorage.getItem(SCANNAME_KEY) || '';
-let anthropicKey = localStorage.getItem(APIKEY_KEY) || '';
 let scanImageB64 = null;
 let scanImageType = 'image/jpeg';
 let scannedShifts = []; // [{ date, shiftId, label, time, color, removed }]
@@ -2797,26 +2803,128 @@ let scannedShifts = []; // [{ date, shiftId, label, time, color, removed }]
 const saveScanName = () => localStorage.setItem(SCANNAME_KEY, scanName);
 
 // ── Match a time string to the closest defined shift
-function matchShiftByTime(timeStr) {
+// Parse start/end hours from a time string like "9:15AM-5:45PM"
+function parseShiftHours(timeStr) {
   if (!timeStr) return null;
-  // parse the start hour from "9:15AM-5:45PM" or "12:00PM-8:30PM"
-  const m = timeStr.replace(/\s/g, '').match(/^(\d{1,2}):?(\d{0,2})(AM|PM)?/i);
-  if (!m) return null;
-  let h = parseInt(m[1]);
-  const ap = (m[3] || '').toUpperCase();
-  if (ap === 'PM' && h < 12) h += 12;
-  if (ap === 'AM' && h === 12) h = 0;
+  const clean = timeStr.replace(/\s/g, '');
+  // match start time
+  const mStart = clean.match(/^(\d{1,2}):?(\d{0,2})(AM|PM)?/i);
+  if (!mStart) return null;
+  let startH = parseInt(mStart[1]);
+  const startMin = mStart[2] ? parseInt(mStart[2]) : 0;
+  const startAP = (mStart[3] || '').toUpperCase();
+  if (startAP === 'PM' && startH < 12) startH += 12;
+  if (startAP === 'AM' && startH === 12) startH = 0;
+  // match end time
+  const mEnd = clean.match(/[–\-](\d{1,2}):?(\d{0,2})(AM|PM)?$/i);
+  let endH = null, endMin = 0;
+  if (mEnd) {
+    endH = parseInt(mEnd[1]);
+    endMin = mEnd[2] ? parseInt(mEnd[2]) : 0;
+    const endAP = (mEnd[3] || '').toUpperCase();
+    if (endAP === 'PM' && endH < 12) endH += 12;
+    if (endAP === 'AM' && endH === 12) endH = 0;
+  }
+  return { startH, startMin, endH, endMin };
+}
 
-  // Try to find the best matching shift by start time
+// Format HH:MM to "9:15 AM"
+function hhmm(h, m) {
+  const ap = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2,'0')} ${ap}`;
+}
+
+// Build a generic day plan from shift hours
+function buildAutoBlocks(startH, startMin, endH, endMin) {
+  const wakeH = Math.max(5, startH - 2);
+  const commuteH = startH - 1; // leave ~1hr before
+  const commuteMin = startMin;
+  const blocks = [
+    { t: hhmm(wakeH, 0),       c: 'wake',  n: 'Wake Up + Morning Routine', d: 'Get ready for work.' },
+    { t: hhmm(commuteH, Math.max(0, commuteMin - 30)), c: 'drive', n: '🚗 Commute to Work', d: 'Drive to work.' },
+    { t: hhmm(startH, startMin), c: 'work', n: 'Work',              d: `${hhmm(startH, startMin)} – ${endH !== null ? hhmm(endH, endMin) : '?'}` },
+  ];
+  if (endH !== null) {
+    const postH = endH + (endMin >= 30 ? 1 : 0);
+    const postMin = endMin >= 30 ? endMin - 30 : endMin + 30;
+    blocks.push({ t: hhmm(endH, endMin),   c: 'drive', n: '🚗 Commute Home',    d: 'Drive home.' });
+    blocks.push({ t: hhmm(Math.min(23, postH), postMin % 60), c: 'eve', n: 'Dinner + Unwind', d: 'Eat, decompress.' });
+    const sleepH = Math.min(23, endH + 2);
+    blocks.push({ t: hhmm(sleepH, 30), c: 'sleep', n: 'Wind Down → Sleep', d: 'Protect your rest.' });
+  }
+  return blocks;
+}
+
+// Pick the next unused color from the palette
+function nextAutoColor() {
+  const used = new Set(Object.values(SHIFTS).map(s => s.color));
+  return SHIFT_COLORS.find(c => !used.has(c)) || SHIFT_COLORS[Math.floor(Math.random() * SHIFT_COLORS.length)];
+}
+
+// Match an existing shift or create a new pending one (stored in autoCreatedShifts)
+// Returns a shiftId — either existing or a new temp id prefixed "auto_"
+const autoCreatedShifts = {}; // temp id → draft shift def
+
+function matchOrCreateShift(timeStr, role) {
+  if (!timeStr) return null;
+  const hours = parseShiftHours(timeStr);
+  if (!hours) return null;
+  const { startH } = hours;
+
+  // Try match existing shift within 30 min of start time
   let best = null, bestDiff = 999;
   for (const [sid, s] of Object.entries(SHIFTS)) {
     const tv = timeToInputVal(s.time || '');
     if (!tv) continue;
-    const [sh] = tv.split(':').map(Number);
-    const diff = Math.abs(sh - h);
+    const [sh, sm] = tv.split(':').map(Number);
+    const diff = Math.abs(sh * 60 + sm - (startH * 60 + hours.startMin));
     if (diff < bestDiff) { bestDiff = diff; best = sid; }
   }
-  return bestDiff <= 1 ? best : null;
+  if (bestDiff <= 30) return best; // good match
+
+  // No match — check if we already auto-created one for this time
+  const timeKey = `${hours.startH}:${hours.startMin}`;
+  const existingAuto = Object.entries(autoCreatedShifts).find(([, s]) => s._timeKey === timeKey);
+  if (existingAuto) return existingAuto[0];
+
+  // Create a new pending shift
+  const autoId = 'auto_' + Math.random().toString(36).slice(2, 8);
+  const timeLabel = buildTimeLabel(
+    `${String(hours.startH).padStart(2,'0')}:${String(hours.startMin).padStart(2,'0')}`,
+    hours.endH !== null ? `${String(hours.endH).padStart(2,'0')}:${String(hours.endMin).padStart(2,'0')}` : ''
+  );
+  const defaultName = role || (hours.startH < 10 ? 'Early Shift' : hours.startH < 12 ? 'Morning Shift' : hours.startH < 14 ? 'Mid Shift' : 'Evening Shift');
+  const blocks = buildAutoBlocks(hours.startH, hours.startMin, hours.endH, hours.endMin);
+  const color = nextAutoColor();
+
+  autoCreatedShifts[autoId] = {
+    _timeKey: timeKey,
+    _isAuto: true,
+    emoji: '🔵',
+    name: defaultName,
+    short: defaultName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 4),
+    time: timeLabel,
+    color,
+    blocks,
+  };
+  return autoId;
+}
+
+function matchShiftByTime(timeStr) {
+  // Legacy compat — used by non-scan code
+  if (!timeStr) return null;
+  const hours = parseShiftHours(timeStr);
+  if (!hours) return null;
+  let best = null, bestDiff = 999;
+  for (const [sid, s] of Object.entries(SHIFTS)) {
+    const tv = timeToInputVal(s.time || '');
+    if (!tv) continue;
+    const [sh, sm] = tv.split(':').map(Number);
+    const diff = Math.abs(sh * 60 + sm - (hours.startH * 60 + hours.startMin));
+    if (diff < bestDiff) { bestDiff = diff; best = sid; }
+  }
+  return bestDiff <= 30 ? best : null;
 }
 
 // ── Name modal
@@ -2898,35 +3006,31 @@ async function readScheduleWithAI(inlineCfg) {
 
   const prompt = `You are a JSON-only schedule parser. No explanations. No markdown. No code fences. Only output a raw JSON object starting with { and ending with }.
 
-Look at this employee work schedule photo.
+Look at this employee work schedule photo. It may show 1 week or 2 weeks of dates.
 
-Find employee: "${scanName}" (Verizon format is "Last, First" — match on last name OR first name, case-insensitive).
+Find employee: "${scanName}" (format is often "Last, First" — match on last name OR first name, case-insensitive).
 
-For each day column in their row:
-- Read the column header date (e.g. "Sun 05/17", "Mon 05/18") — use year ${yr}
+For EVERY day column visible in their row across ALL weeks shown:
+- Read the column header date (e.g. "Sun 05/17", "Mon 05/18", "Sat 05/31") — use year ${yr}
+- Handle month boundaries correctly (e.g. May 30 is 2026-05-30, Jun 1 is 2026-06-01)
 - Extract their shift time (e.g. "9:15AM-5:45PM", "12:00PM-8:30PM")
-- Extract role if shown (e.g. "Sales", "ASM")
-- If cell is blank, "OFF", "RDO", or similar = day off
+- Extract role if shown (e.g. "Sales", "ASM", "Lead")
+- If cell is blank, "OFF", "RDO", "DO", or "X" = day off (isOff: true)
 
-OUTPUT ONLY THIS JSON (no other text):
-{"employeeFound":true,"employeeName":"EXACTNAME","shifts":[{"date":"YYYY-MM-DD","dayLabel":"Mon 05/18","time":"9:15AM-5:45PM","role":"Sales","isOff":false}],"notes":""}
+OUTPUT ONLY THIS JSON (no other text before or after):
+{"employeeFound":true,"employeeName":"EXACTNAME","weeksFound":1,"shifts":[{"date":"YYYY-MM-DD","dayLabel":"Mon 05/18","time":"9:15AM-5:45PM","role":"Sales","isOff":false},{"date":"YYYY-MM-DD","dayLabel":"Tue 05/19","time":"","role":"","isOff":true}],"notes":""}
 
+If 2 weeks visible, set weeksFound:2 and include ALL shifts from both weeks.
 If not found: {"employeeFound":false,"shifts":[],"notes":"NAME not found in schedule"}
 If unreadable: {"employeeFound":false,"shifts":[],"notes":"Image too blurry or dark"}`;
-
-  if (!anthropicKey) {
-    stepFn(3);
-    $(errId).innerHTML = `⚠️ <strong>No API key set.</strong><br><br>Open Settings and paste your Anthropic API key (get one free at <span style="font-family:var(--mono)">console.anthropic.com</span>).`;
-    return;
-  }
 
   let raw = '';
   try {
     let resp;
     try {
-      resp = await fetch('https://api.anthropic.com/v1/messages', {
+      resp = await fetch('/api/scan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-request-header': 'true' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1500,
@@ -2981,6 +3085,9 @@ If unreadable: {"employeeFound":false,"shifts":[],"notes":"Image too blurry or d
       throw new Error('Employee found but no shifts extracted. Try a closer photo where column headers are visible.');
     }
 
+    // Clear any pending auto-created shifts from previous scan
+    Object.keys(autoCreatedShifts).forEach(k => delete autoCreatedShifts[k]);
+
     scannedShifts = parsed.shifts.map(s => {
       let date = (s.date || '').trim();
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -2992,8 +3099,9 @@ If unreadable: {"employeeFound":false,"shifts":[],"notes":"Image too blurry or d
         }
       }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-      const sid = s.isOff ? findOffShift() : matchShiftByTime(s.time);
-      const shiftDef = sid ? SHIFTS[sid] : null;
+      const sid = s.isOff ? findOffShift() : matchOrCreateShift(s.time, s.role);
+      const isAuto = sid && !!autoCreatedShifts[sid];
+      const shiftDef = sid ? (SHIFTS[sid] || autoCreatedShifts[sid]) : null;
       return {
         date, dayLabel: s.dayLabel || date,
         time: s.time || (s.isOff ? 'Day Off' : ''),
@@ -3001,6 +3109,7 @@ If unreadable: {"employeeFound":false,"shifts":[],"notes":"Image too blurry or d
         shiftId: sid,
         shiftName: shiftDef ? shiftDef.name : (s.isOff ? 'Day Off' : s.time || 'Unmatched'),
         color: shiftDef ? shiftDef.color : (s.isOff ? '#34d399' : '#94a3b8'),
+        isAuto,
         removed: false,
       };
     }).filter(Boolean);
@@ -3017,10 +3126,10 @@ If unreadable: {"employeeFound":false,"shifts":[],"notes":"Image too blurry or d
     const msg = err.message || String(err);
     if (msg === 'LOCAL_FILE') {
       $(errId).innerHTML = `
-        ⚠️ <strong>Open via a local server, not a file.</strong><br><br>
-        Browsers block API calls from <span style="font-family:var(--mono)">file://</span> pages. Serve it locally instead:<br><br>
-        <span style="font-family:var(--mono);font-size:11px;background:var(--s1);padding:6px 10px;border-radius:6px;display:inline-block">npx serve ~/monthly-planner</span><br><br>
-        Then open <span style="font-family:var(--mono)">http://localhost:3000</span> in your browser.`;
+        ⚠️ <strong>App must be hosted online to scan.</strong><br><br>
+        You're opening this as a local file — the browser blocks API calls for security.<br><br>
+        <strong>Fix:</strong> Deploy to Vercel and open your live URL. Scan will work from there.<br><br>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--tx3)">cd ~/Downloads/mybudget_final<br>npm run build → git push → Vercel deploys</span>`;
       return;
     }
     const isCors = msg.toLowerCase().includes('failed to fetch') ||
@@ -3124,28 +3233,88 @@ function closeScanPreview() { $('scanPreviewBg').classList.remove('on'); }
 
 function renderScanPreview() {
   const list = $('scanPreviewList');
-  list.innerHTML = scannedShifts.map((s, i) => {
+
+  // Group shifts by week (Mon–Sun) for multi-week display
+  const weeks = {};
+  scannedShifts.forEach((s, i) => {
     const d = new Date(s.date + 'T00:00:00');
-    const dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
-    const dateDisplay = `${dow} · ${monthNames[d.getMonth()].slice(0,3)} ${d.getDate()}, ${d.getFullYear()}`;
-    return `
-      <div class="scan-preview-row ${s.removed ? 'removed' : ''}" data-si="${i}">
-        <div class="scan-preview-dot" style="background:${s.color}"></div>
-        <div class="scan-preview-body">
-          <div class="scan-preview-date">${dateDisplay}</div>
-          <div class="scan-preview-shift">${s.shiftName}${s.role && s.role !== s.shiftName ? ' · ' + s.role : ''}</div>
-          ${s.time && !s.isOff ? `<div class="scan-preview-time">${s.time}</div>` : ''}
+    // Get Sunday of that week as week key
+    const sun = new Date(d);
+    sun.setDate(d.getDate() - d.getDay());
+    const wk = fmt(sun);
+    if (!weeks[wk]) weeks[wk] = [];
+    weeks[wk].push({ ...s, _i: i });
+  });
+
+  const weekKeys = Object.keys(weeks).sort();
+  const multiWeek = weekKeys.length > 1;
+
+  list.innerHTML = weekKeys.map(wk => {
+    const wkDate = new Date(wk + 'T00:00:00');
+    const wkEnd = new Date(wkDate); wkEnd.setDate(wkDate.getDate() + 6);
+    const wkLabel = multiWeek
+      ? `Week of ${monthNames[wkDate.getMonth()].slice(0,3)} ${wkDate.getDate()} – ${wkEnd.getDate()}`
+      : '';
+
+    const rows = weeks[wk].map(s => {
+      const d = new Date(s.date + 'T00:00:00');
+      const dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+      const dateDisplay = `${dow} · ${monthNames[d.getMonth()].slice(0,3)} ${d.getDate()}`;
+      const autoDraft = s.isAuto && s.shiftId ? autoCreatedShifts[s.shiftId] : null;
+
+      return `
+        <div class="scan-preview-row ${s.removed ? 'removed' : ''}" data-si="${s._i}">
+          <div class="scan-preview-dot" style="background:${s.color}"></div>
+          <div class="scan-preview-body">
+            <div class="scan-preview-date">${dateDisplay}</div>
+            ${autoDraft ? `
+              <div class="scan-auto-rename">
+                <span class="scan-auto-badge">✨ New shift</span>
+                <input class="scan-rename-input" data-autoid="${s.shiftId}"
+                  value="${escapeHtml(autoDraft.name)}" placeholder="Name this shift">
+              </div>
+            ` : `<div class="scan-preview-shift">${escapeHtml(s.shiftName)}${s.role && s.role !== s.shiftName ? ' · ' + escapeHtml(s.role) : ''}</div>`}
+            ${s.time && !s.isOff ? `<div class="scan-preview-time">${escapeHtml(s.time)}</div>` : ''}
+          </div>
+          <button class="scan-preview-remove" data-si="${s._i}">${s.removed ? '↩' : '×'}</button>
         </div>
-        <button class="scan-preview-remove" data-si="${i}">${s.removed ? '↩' : '×'}</button>
-      </div>
-    `;
+      `;
+    }).join('');
+
+    return multiWeek
+      ? `<div class="scan-week-hd">${wkLabel}</div>${rows}`
+      : rows;
   }).join('');
 
-  // Bind row toggles
-  list.querySelectorAll('[data-si]').forEach(el => {
-    el.addEventListener('click', (e) => {
+  // Bind rename inputs — update autoCreatedShifts name live
+  list.querySelectorAll('.scan-rename-input').forEach(inp => {
+    inp.addEventListener('input', (e) => {
+      e.stopPropagation(); // don't trigger row toggle
+      const aid = inp.dataset.autoid;
+      if (autoCreatedShifts[aid]) {
+        autoCreatedShifts[aid].name = inp.value.trim() || autoCreatedShifts[aid].name;
+        autoCreatedShifts[aid].short = (inp.value.trim() || '').split(' ')
+          .map(w => w[0]).join('').toUpperCase().slice(0,4) || autoCreatedShifts[aid].short;
+        // update scannedShifts display name too
+        scannedShifts.forEach(s => { if (s.shiftId === aid) s.shiftName = autoCreatedShifts[aid].name; });
+      }
+    });
+    inp.addEventListener('click', e => e.stopPropagation());
+  });
+
+  // Bind row toggles — tap anywhere except the rename input
+  list.querySelectorAll('.scan-preview-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.scan-rename-input')) return;
+      const i = +row.dataset.si;
+      scannedShifts[i].removed = !scannedShifts[i].removed;
+      renderScanPreview();
+    });
+  });
+  list.querySelectorAll('.scan-preview-remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const i = +el.dataset.si;
+      const i = +btn.dataset.si;
       scannedShifts[i].removed = !scannedShifts[i].removed;
       renderScanPreview();
     });
@@ -3155,26 +3324,59 @@ function renderScanPreview() {
   const active = scannedShifts.filter(s => !s.removed);
   const work = active.filter(s => !s.isOff).length;
   const off = active.filter(s => s.isOff).length;
-  $('scanPreviewStats').textContent =
-    `${active.length} shifts to add · ${work} work day${work !== 1 ? 's' : ''} · ${off} day${off !== 1 ? 's' : ''} off`;
-  $('scanConfirmBtn').textContent =
-    active.length ? `Add ${active.length} Shift${active.length !== 1 ? 's' : ''} to Calendar ✓` : 'Nothing to Add';
+  const newShifts = Object.keys(autoCreatedShifts).filter(aid =>
+    active.some(s => s.shiftId === aid)
+  ).length;
+  const statParts = [
+    `${active.length} shift${active.length !== 1 ? 's' : ''} to add`,
+    `${work} work day${work !== 1 ? 's' : ''}`,
+    off ? `${off} off` : null,
+    newShifts ? `${newShifts} new shift type${newShifts !== 1 ? 's' : ''} created` : null,
+  ].filter(Boolean);
+  $('scanPreviewStats').textContent = statParts.join(' · ');
+  $('scanConfirmBtn').textContent = active.length
+    ? `Add ${active.length} Shift${active.length !== 1 ? 's' : ''} to Calendar ✓`
+    : 'Nothing to Add';
   $('scanConfirmBtn').disabled = !active.length;
 }
 
 function confirmScanShifts() {
   const toAdd = scannedShifts.filter(s => !s.removed && s.shiftId);
-  toAdd.forEach(s => { shiftAssignments[s.date] = s.shiftId; });
+
+  // 1. Commit any auto-created shifts to SHIFTS (with final renamed name)
+  const autoIds = {};
+  toAdd.forEach(s => {
+    if (s.isAuto && s.shiftId && autoCreatedShifts[s.shiftId]) {
+      if (!autoIds[s.shiftId]) {
+        const draft = autoCreatedShifts[s.shiftId];
+        // Assign a permanent id
+        const permId = 's_' + Math.random().toString(36).slice(2, 8);
+        const { _timeKey, _isAuto, ...cleanDraft } = draft;
+        SHIFTS[permId] = cleanDraft;
+        autoIds[s.shiftId] = permId;
+      }
+      s.shiftId = autoIds[s.shiftId]; // remap to permanent id
+    }
+  });
+  if (Object.keys(autoIds).length) saveShiftDefs();
+
+  // 2. Assign all shifts to calendar
+  toAdd.forEach(s => { if (s.shiftId) shiftAssignments[s.date] = s.shiftId; });
   saveShiftAssignments();
+
+  // 3. Cleanup
+  Object.keys(autoCreatedShifts).forEach(k => delete autoCreatedShifts[k]);
+
   closeScanPreview();
-  refreshActiveView();
-  // jump month view to the first shift's month
+
+  // 4. Jump to the first affected month
   if (toAdd.length) {
-    const first = new Date(toAdd[0].date + 'T00:00:00');
+    const sorted = [...toAdd].sort((a,b) => a.date.localeCompare(b.date));
+    const first = new Date(sorted[0].date + 'T00:00:00');
     viewDate = new Date(first.getFullYear(), first.getMonth(), 1);
-    if (currentView !== 'today') setView('month');
-    else renderMonth();
   }
+  if (currentView !== 'today') setView('month');
+  else refreshActiveView();
 }
 
 function showOnboarding() {
@@ -3865,12 +4067,6 @@ $('sheetBg').addEventListener('click', (e) => { if (e.target === $('sheetBg')) c
 
 // settings
 $('settingsClose').addEventListener('click', closeSettings);
-$('apikeySave').addEventListener('click', () => {
-  anthropicKey = $('apikeyInput').value.trim();
-  localStorage.setItem(APIKEY_KEY, anthropicKey);
-  $('apikeyStatus').textContent = anthropicKey ? 'Key saved.' : 'Key cleared.';
-});
-$('apikeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('apikeySave').click(); });
 
 // shift editor
 $('shiftClose').addEventListener('click', closeShiftEditor);
