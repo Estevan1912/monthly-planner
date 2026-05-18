@@ -2973,21 +2973,38 @@ function showScanStep(n) {
   });
 }
 
-function handleScanImage(file) {
-  if (!file) return;
-  scanImageType = file.type || 'image/jpeg';
+function compressImage(file, callback) {
   const reader = new FileReader();
   reader.onload = (e) => {
-    // Extract base64 (strip data:image/...;base64, prefix)
-    const full = e.target.result;
-    scanImageB64 = full.split(',')[1];
-    // Show preview
-    $('scanImg').src = full;
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1600;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else        { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      callback(dataUrl);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleScanImage(file) {
+  if (!file) return;
+  scanImageType = 'image/jpeg';
+  compressImage(file, (dataUrl) => {
+    scanImageB64 = dataUrl.split(',')[1];
+    $('scanImg').src = dataUrl;
     $('scanImgWrap').style.display = '';
     $('scanDrop').style.display = 'none';
     $('scanReadBtn').disabled = false;
-  };
-  reader.readAsDataURL(file);
+  });
 }
 
 // ── Call Claude API to read the schedule image
@@ -3185,21 +3202,18 @@ function resetInlineScan() {
 
 function handleInlineScanImage(file) {
   if (!file) return;
-  scanImageType = file.type || 'image/jpeg';
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const full = e.target.result;
-    scanImageB64 = full.split(',')[1];
-    const img = $('scanImgInline');
+  scanImageType = 'image/jpeg';
+  compressImage(file, (dataUrl) => {
+    scanImageB64 = dataUrl.split(',')[1];
+    const img  = $('scanImgInline');
     const wrap = $('scanImgWrapInline');
     const drop = $('scanDropInline');
     const btn  = $('scanReadBtnInline');
-    if (img)  img.src = full;
+    if (img)  img.src = dataUrl;
     if (wrap) wrap.style.display = '';
     if (drop) drop.style.display = 'none';
     if (btn)  btn.disabled = false;
-  };
-  reader.readAsDataURL(file);
+  });
 }
 
 // readScheduleWithAI already handles both flows —
