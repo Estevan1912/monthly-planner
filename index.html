@@ -1867,6 +1867,7 @@ let bulkSelected = new Set();
 
 // double-tap quick picker
 let lastCellTap = {};
+let cellTapTimer = null;
 
 // shift editor state
 let editingShiftId = null;
@@ -2050,29 +2051,30 @@ function renderMonth() {
   }
 
   grid.querySelectorAll('.cell:not(.empty)').forEach(cell => {
-    cell.addEventListener('touchstart', e => {
-      if (bulkMode) return;
-      const now = Date.now();
-      const ds = cell.dataset.date;
-      if (lastCellTap.ds === ds && now - lastCellTap.time < 320) {
-        e.preventDefault();
-        lastCellTap = {};
-        showQuickPicker(ds, cell);
-        return;
-      }
-      lastCellTap = { ds, time: now };
-    }, { passive: false });
-
     cell.addEventListener('click', () => {
       const ds = cell.dataset.date;
+      const now = Date.now();
+
       if (bulkMode) {
         if (bulkSelected.has(ds)) bulkSelected.delete(ds);
         else bulkSelected.add(ds);
-        updateBulkBar();
-        renderMonth();
-      } else {
-        openSheet(ds);
+        updateBulkBar(); renderMonth(); return;
       }
+
+      // Double-tap: second tap on same cell within 350 ms
+      if (lastCellTap.ds === ds && now - lastCellTap.time < 350) {
+        clearTimeout(cellTapTimer); cellTapTimer = null; lastCellTap = {};
+        showQuickPicker(ds, cell);
+        return;
+      }
+
+      // First tap: record it, wait 260 ms before opening sheet
+      lastCellTap = { ds, time: now };
+      clearTimeout(cellTapTimer);
+      cellTapTimer = setTimeout(() => {
+        cellTapTimer = null;
+        if (lastCellTap.ds === ds) { lastCellTap = {}; openSheet(ds); }
+      }, 260);
     });
   });
 
@@ -4356,84 +4358,100 @@ $('onboardStart').addEventListener('click', finishOnboarding);
 
 /* ─────────────────────────────────────── QUICK PICKER */
 let qpActiveDate = null;
+let qpPendingSid  = null;   // chosen shift, not yet saved
+let qpPendingVid  = null;   // chosen variant, not yet saved
 
 function showQuickPicker(dateStr, cellEl) {
-  qpActiveDate = dateStr;
+  qpActiveDate  = dateStr;
+  qpPendingSid  = shiftAssignments[dateStr] || null;
+  qpPendingVid  = variantAssignments[dateStr] || null;
+
   const d = new Date(dateStr + 'T00:00:00');
   $('qpDate').textContent = `${dayShort[d.getDay()]} · ${monthNames[d.getMonth()]} ${d.getDate()}`;
-  $('qpVariantSection').style.display = 'none';
+
   renderQPShifts();
+  renderQPVariantSection();
 
   const popup = $('quickPicker');
-  popup.style.display = 'block';
-  $('qpOverlay').style.display = 'block';
-
-  const rect  = cellEl.getBoundingClientRect();
   const pw    = Math.min(280, window.innerWidth - 16);
+  const rect  = cellEl.getBoundingClientRect();
   let left    = rect.left + rect.width / 2 - pw / 2;
   let top     = rect.bottom + 8;
   left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
-  if (top + 220 > window.innerHeight) top = Math.max(8, rect.top - 220);
-  popup.style.cssText += `;left:${left}px;top:${top}px;width:${pw}px;display:block`;
+  if (top + 250 > window.innerHeight) top = Math.max(8, rect.top - 250);
+  popup.style.cssText = `display:block;left:${left}px;top:${top}px;width:${pw}px`;
+  $('qpOverlay').style.display = 'block';
+}
+
+function commitAndCloseQP() {
+  if (qpActiveDate) {
+    if (qpPendingSid) {
+      shiftAssignments[qpActiveDate] = qpPendingSid;
+      if (qpPendingVid) variantAssignments[qpActiveDate] = qpPendingVid;
+      else delete variantAssignments[qpActiveDate];
+    } else {
+      delete shiftAssignments[qpActiveDate];
+      delete variantAssignments[qpActiveDate];
+    }
+    saveShiftAssignments(); saveVariantAssignments();
+    renderMonth();
+  }
+  closeQuickPicker();
 }
 
 function closeQuickPicker() {
   $('quickPicker').style.display = 'none';
-  $('qpOverlay').style.display = 'none';
-  qpActiveDate = null;
+  $('qpOverlay').style.display  = 'none';
+  qpActiveDate = null; qpPendingSid = null; qpPendingVid = null;
 }
 
 function renderQPShifts() {
-  const curSid = shiftAssignments[qpActiveDate];
   $('qpShifts').innerHTML = Object.entries(SHIFTS).map(([id, s]) => {
-    const on = id === curSid;
+    const on = id === qpPendingSid;
     return `<button class="qp-chip" data-qps="${id}"
-      style="background:${s.color};${on ? 'outline:2px solid #fff;outline-offset:2px;' : 'opacity:.8'}"
+      style="background:${s.color};${on ? 'outline:2.5px solid #fff;outline-offset:2px;opacity:1' : 'opacity:.75'}"
       >${s.emoji} ${s.short}</button>`;
   }).join('') + `<button class="qp-chip clear" data-qps="">Clear</button>`;
 
   $('qpShifts').querySelectorAll('[data-qps]').forEach(btn => {
     btn.addEventListener('click', () => {
       const sid = btn.dataset.qps;
-      if (!sid) {
-        delete shiftAssignments[qpActiveDate];
-        delete variantAssignments[qpActiveDate];
-        saveShiftAssignments(); saveVariantAssignments();
-        closeQuickPicker(); renderMonth(); return;
-      }
-      shiftAssignments[qpActiveDate] = sid;
-      delete variantAssignments[qpActiveDate];
-      saveShiftAssignments(); saveVariantAssignments();
-      renderMonth();
-      const shiftDef = SHIFTS[sid];
-      if (shiftDef && shiftDef.variants && shiftDef.variants.length) {
-        renderQPVariants(shiftDef);
-        $('qpVariantSection').style.display = 'block';
-      } else {
-        closeQuickPicker();
-      }
+      qpPendingSid = sid || null;
+      qpPendingVid = null;
+      renderQPShifts();
+      renderQPVariantSection();
+      // No variants on this shift → commit immediately
+      if (sid && !(SHIFTS[sid]?.variants?.length)) { commitAndCloseQP(); }
+      if (!sid) { commitAndCloseQP(); } // Clear
     });
   });
 }
 
-function renderQPVariants(shiftDef) {
-  const curVid = variantAssignments[qpActiveDate];
-  $('qpVariants').innerHTML = shiftDef.variants.map(v => {
-    const on = v.id === curVid;
+function renderQPVariantSection() {
+  const shiftDef = qpPendingSid ? SHIFTS[qpPendingSid] : null;
+  const variants = shiftDef?.variants;
+  const sec = $('qpVariantSection');
+  if (!variants || !variants.length) { sec.style.display = 'none'; return; }
+
+  sec.style.display = 'block';
+  $('qpVariants').innerHTML = variants.map(v => {
+    const on = v.id === qpPendingVid;
     return `<button class="qp-vchip ${on ? 'on' : ''}" data-qpv="${v.id}"
-      style="color:${shiftDef.color};${on ? `border-color:${shiftDef.color};background:${shiftDef.color}22` : ''}"
-      >${escapeHtml(v.label)}</button>`;
+      style="color:${shiftDef.color};${on
+        ? `border-color:${shiftDef.color};background:${shiftDef.color}22;font-weight:800`
+        : ''}">${escapeHtml(v.label)}</button>`;
   }).join('');
+
   $('qpVariants').querySelectorAll('[data-qpv]').forEach(btn => {
     btn.addEventListener('click', () => {
-      variantAssignments[qpActiveDate] = btn.dataset.qpv;
-      saveVariantAssignments();
-      closeQuickPicker(); renderMonth();
+      qpPendingVid = btn.dataset.qpv;
+      commitAndCloseQP();
     });
   });
 }
 
-$('qpOverlay').addEventListener('click', closeQuickPicker);
+// Tapping outside applies whatever is pending
+$('qpOverlay').addEventListener('click', commitAndCloseQP);
 
 /* ─────────────────────────────────────── QUICK ADD */
 let qaSelectedDays = new Set();
