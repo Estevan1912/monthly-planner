@@ -984,6 +984,50 @@ input, textarea, select {
 .pattern-range > div { flex: 1; }
 .pattern-info { background: var(--s2); border-radius: var(--r-sm); padding: 11px 14px; font-size: 12px; color: var(--tx3); font-family: var(--mono); letter-spacing: .04em; margin-bottom: 10px; border: 1px solid var(--bd); }
 
+/* ═══ QUICK PICKER POPUP ═══ */
+.qp {
+  position: fixed; z-index: 350;
+  background: var(--bg); border: 1px solid var(--bd);
+  border-radius: var(--r-lg); padding: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.55);
+  min-width: 220px; max-width: 92vw;
+  animation: slideUp .18s cubic-bezier(.32,1,.24,1);
+}
+.qp-date {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--tx3); margin-bottom: 10px;
+}
+.qp-shifts { display: flex; flex-wrap: wrap; gap: 6px; }
+.qp-chip {
+  padding: 8px 13px; border-radius: 999px; font-size: 12px;
+  font-weight: 700; cursor: pointer; border: none; color: #fff;
+  font-family: var(--sans); transition: all .12s;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.qp-chip:active { transform: scale(.91); }
+.qp-chip.clear {
+  background: var(--s2); color: var(--tx3);
+  border: 1.5px solid var(--bd); font-weight: 600;
+}
+.qp-sep { height: 1px; background: var(--bd); margin: 10px 0 8px; }
+.qp-section-lbl {
+  font-family: var(--mono); font-size: 9px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--tx3); margin-bottom: 8px;
+}
+.qp-variants { display: flex; flex-wrap: wrap; gap: 5px; }
+.qp-vchip {
+  padding: 6px 11px; border-radius: 999px; font-size: 11px;
+  font-weight: 700; cursor: pointer; font-family: var(--mono);
+  border: 1.5px solid var(--bd); background: var(--s2); color: var(--tx2);
+  transition: all .12s; touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.qp-vchip.on { background: var(--s3); }
+.qp-vchip:active { transform: scale(.91); }
+.qp-overlay {
+  display: none; position: fixed; inset: 0; z-index: 349;
+}
+
 /* ═══ QUICK ADD ═══ */
 .qa-select {
   width: 100%; background: var(--s2); border: 1.5px solid var(--bd);
@@ -1162,6 +1206,18 @@ input, textarea, select {
       <button class="btn-secondary" id="quickAddCancel">Cancel</button>
       <button class="btn-primary" id="quickAddSave">Add to Calendar</button>
     </div>
+  </div>
+</div>
+
+<!-- QUICK PICKER POPUP -->
+<div class="qp-overlay" id="qpOverlay"></div>
+<div class="qp" id="quickPicker" style="display:none">
+  <div class="qp-date" id="qpDate"></div>
+  <div class="qp-shifts" id="qpShifts"></div>
+  <div id="qpVariantSection" style="display:none">
+    <div class="qp-sep"></div>
+    <div class="qp-section-lbl">Start time</div>
+    <div class="qp-variants" id="qpVariants"></div>
   </div>
 </div>
 
@@ -1809,6 +1865,9 @@ let chosenRecur = 'none';
 let bulkMode = false;
 let bulkSelected = new Set();
 
+// double-tap quick picker
+let lastCellTap = {};
+
 // shift editor state
 let editingShiftId = null;
 let editingShiftDraft = null;
@@ -1991,6 +2050,19 @@ function renderMonth() {
   }
 
   grid.querySelectorAll('.cell:not(.empty)').forEach(cell => {
+    cell.addEventListener('touchstart', e => {
+      if (bulkMode) return;
+      const now = Date.now();
+      const ds = cell.dataset.date;
+      if (lastCellTap.ds === ds && now - lastCellTap.time < 320) {
+        e.preventDefault();
+        lastCellTap = {};
+        showQuickPicker(ds, cell);
+        return;
+      }
+      lastCellTap = { ds, time: now };
+    }, { passive: false });
+
     cell.addEventListener('click', () => {
       const ds = cell.dataset.date;
       if (bulkMode) {
@@ -2044,6 +2116,8 @@ function exitBulkMode() {
   bulkMode = false;
   bulkSelected.clear();
   $('bulkBar').classList.remove('on');
+  const vr = $('bulkVariantRow');
+  if (vr) vr.remove();
   refreshActiveView();
 }
 function refreshActiveView() {
@@ -2051,20 +2125,55 @@ function refreshActiveView() {
   else if (currentView === 'insights') renderInsights();
   else renderMonth();
 }
+function applyBulkShift(sid, vid) {
+  bulkSelected.forEach(ds => {
+    if (sid) shiftAssignments[ds] = sid;
+    else { delete shiftAssignments[ds]; delete done[ds]; }
+    if (vid) variantAssignments[ds] = vid;
+    else delete variantAssignments[ds];
+  });
+  saveShiftAssignments(); saveVariantAssignments(); saveDone();
+}
+function showBulkVariants(sid, shiftDef) {
+  const existing = $('bulkVariantRow');
+  if (existing) existing.remove();
+  const vr = document.createElement('div');
+  vr.id = 'bulkVariantRow';
+  vr.className = 'bulk-shift-row';
+  vr.style.cssText = 'border-top:1px solid rgba(255,255,255,.15);padding-top:8px;margin-top:4px';
+  vr.innerHTML =
+    `<span style="color:rgba(255,255,255,.65);font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:6px 4px 0;flex-shrink:0">Start:</span>` +
+    shiftDef.variants.map(v =>
+      `<button class="bulk-chip" data-bv="${v.id}">${escapeHtml(v.label)}</button>`
+    ).join('') +
+    `<button class="bulk-chip clear-chip" data-bv="">Any</button>`;
+  $('bulkBar').appendChild(vr);
+  vr.querySelectorAll('[data-bv]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      applyBulkShift(sid, btn.dataset.bv || null);
+      exitBulkMode();
+    });
+  });
+}
 function renderBulkShifts() {
   const row = $('bulkShifts');
+  const existing = $('bulkVariantRow');
+  if (existing) existing.remove();
   row.innerHTML = Object.entries(SHIFTS).map(([id, s]) =>
     `<button class="bulk-chip" data-bulk-shift="${id}">${s.emoji} ${s.short}</button>`
   ).join('') + `<button class="bulk-chip clear-chip" data-bulk-shift="">Clear</button>`;
   row.querySelectorAll('[data-bulk-shift]').forEach(btn => {
     btn.addEventListener('click', () => {
       const sid = btn.dataset.bulkShift;
-      bulkSelected.forEach(ds => {
-        if (sid) shiftAssignments[ds] = sid;
-        else { delete shiftAssignments[ds]; delete done[ds]; }
-      });
-      saveShiftAssignments(); saveDone();
-      exitBulkMode();
+      if (!sid) { applyBulkShift('', null); exitBulkMode(); return; }
+      const shiftDef = SHIFTS[sid];
+      if (shiftDef && shiftDef.variants && shiftDef.variants.length) {
+        applyBulkShift(sid, null);
+        showBulkVariants(sid, shiftDef);
+      } else {
+        applyBulkShift(sid, null);
+        exitBulkMode();
+      }
     });
   });
 }
@@ -4244,6 +4353,87 @@ $('patEnd').addEventListener('change', updatePatternInfo);
 
 // onboarding
 $('onboardStart').addEventListener('click', finishOnboarding);
+
+/* ─────────────────────────────────────── QUICK PICKER */
+let qpActiveDate = null;
+
+function showQuickPicker(dateStr, cellEl) {
+  qpActiveDate = dateStr;
+  const d = new Date(dateStr + 'T00:00:00');
+  $('qpDate').textContent = `${dayShort[d.getDay()]} · ${monthNames[d.getMonth()]} ${d.getDate()}`;
+  $('qpVariantSection').style.display = 'none';
+  renderQPShifts();
+
+  const popup = $('quickPicker');
+  popup.style.display = 'block';
+  $('qpOverlay').style.display = 'block';
+
+  const rect  = cellEl.getBoundingClientRect();
+  const pw    = Math.min(280, window.innerWidth - 16);
+  let left    = rect.left + rect.width / 2 - pw / 2;
+  let top     = rect.bottom + 8;
+  left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+  if (top + 220 > window.innerHeight) top = Math.max(8, rect.top - 220);
+  popup.style.cssText += `;left:${left}px;top:${top}px;width:${pw}px;display:block`;
+}
+
+function closeQuickPicker() {
+  $('quickPicker').style.display = 'none';
+  $('qpOverlay').style.display = 'none';
+  qpActiveDate = null;
+}
+
+function renderQPShifts() {
+  const curSid = shiftAssignments[qpActiveDate];
+  $('qpShifts').innerHTML = Object.entries(SHIFTS).map(([id, s]) => {
+    const on = id === curSid;
+    return `<button class="qp-chip" data-qps="${id}"
+      style="background:${s.color};${on ? 'outline:2px solid #fff;outline-offset:2px;' : 'opacity:.8'}"
+      >${s.emoji} ${s.short}</button>`;
+  }).join('') + `<button class="qp-chip clear" data-qps="">Clear</button>`;
+
+  $('qpShifts').querySelectorAll('[data-qps]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sid = btn.dataset.qps;
+      if (!sid) {
+        delete shiftAssignments[qpActiveDate];
+        delete variantAssignments[qpActiveDate];
+        saveShiftAssignments(); saveVariantAssignments();
+        closeQuickPicker(); renderMonth(); return;
+      }
+      shiftAssignments[qpActiveDate] = sid;
+      delete variantAssignments[qpActiveDate];
+      saveShiftAssignments(); saveVariantAssignments();
+      renderMonth();
+      const shiftDef = SHIFTS[sid];
+      if (shiftDef && shiftDef.variants && shiftDef.variants.length) {
+        renderQPVariants(shiftDef);
+        $('qpVariantSection').style.display = 'block';
+      } else {
+        closeQuickPicker();
+      }
+    });
+  });
+}
+
+function renderQPVariants(shiftDef) {
+  const curVid = variantAssignments[qpActiveDate];
+  $('qpVariants').innerHTML = shiftDef.variants.map(v => {
+    const on = v.id === curVid;
+    return `<button class="qp-vchip ${on ? 'on' : ''}" data-qpv="${v.id}"
+      style="color:${shiftDef.color};${on ? `border-color:${shiftDef.color};background:${shiftDef.color}22` : ''}"
+      >${escapeHtml(v.label)}</button>`;
+  }).join('');
+  $('qpVariants').querySelectorAll('[data-qpv]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      variantAssignments[qpActiveDate] = btn.dataset.qpv;
+      saveVariantAssignments();
+      closeQuickPicker(); renderMonth();
+    });
+  });
+}
+
+$('qpOverlay').addEventListener('click', closeQuickPicker);
 
 /* ─────────────────────────────────────── QUICK ADD */
 let qaSelectedDays = new Set();
