@@ -1024,6 +1024,29 @@ input, textarea, select {
 }
 .qp-vchip.on { background: var(--s3); }
 .qp-vchip:active { transform: scale(.91); }
+.qp-add-time-btn {
+  width: 100%; margin-top: 10px;
+  background: var(--s2); border: 1.5px dashed var(--bd2);
+  border-radius: var(--r-sm); padding: 9px 12px;
+  color: var(--tx3); font-family: var(--mono); font-size: 10px;
+  letter-spacing: .08em; text-transform: uppercase; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.qp-add-time-btn:active { background: var(--s3); }
+.qp-add-time-btn.has-time {
+  border-style: solid; border-color: var(--c);
+  color: var(--c); background: rgba(59,130,246,.08);
+}
+.qp-time-input {
+  width: 100%; margin-top: 8px;
+  background: var(--s2); border: 1.5px solid var(--c);
+  border-radius: var(--r-sm); padding: 10px 12px;
+  color: var(--tx); font-family: var(--mono); font-size: 15px;
+  outline: none; -webkit-appearance: none; appearance: none;
+  box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+}
 .qp-overlay {
   display: none; position: fixed; inset: 0; z-index: 349;
 }
@@ -1218,6 +1241,10 @@ input, textarea, select {
     <div class="qp-sep"></div>
     <div class="qp-section-lbl">Start time</div>
     <div class="qp-variants" id="qpVariants"></div>
+  </div>
+  <div id="qpCustomTimeWrap" style="display:none">
+    <button class="qp-add-time-btn" id="qpAddTimeBtn">⏰ Set custom start time</button>
+    <input type="time" class="qp-time-input" id="qpTimeInput" style="display:none">
   </div>
 </div>
 
@@ -1589,6 +1616,7 @@ const SHIFTDEF_KEY = 'planner_shiftdefs_v2';
 const ONBOARD_KEY = 'planner_onboarded_v2';
 const PREFS_KEY   = 'planner_prefs_v2';
 const SCANNAME_KEY = 'planner_scanname_v2';
+const CUSTOM_TIMES_KEY = 'planner_custom_times_v2';
 
 const CC = {
   wake:  '#fbbf24',  // amber
@@ -1850,6 +1878,7 @@ let viewDate = new Date();
 let openDate = null;
 let events = JSON.parse(localStorage.getItem(EVENTS_KEY) || '[]');
 let shiftAssignments = JSON.parse(localStorage.getItem(SHIFTS_KEY) || '{}');
+let customTimes = JSON.parse(localStorage.getItem(CUSTOM_TIMES_KEY) || '{}');
 let variantAssignments = JSON.parse(localStorage.getItem(VARIANTS_KEY) || '{}');
 let done = JSON.parse(localStorage.getItem(DONE_KEY) || '{}');
 let dayNotes = JSON.parse(localStorage.getItem(NOTES_KEY) || '{}');
@@ -1895,20 +1924,27 @@ function getActiveVariant(shiftDef, dateStr) {
   return shiftDef.variants[0];
 }
 
-// Get the effective blocks + time label for a date (variant-aware)
+// Get the effective blocks + time label for a date (variant + custom-time aware)
 function getEffectiveShift(shiftDef, dateStr) {
   if (!shiftDef) return null;
   const v = getActiveVariant(shiftDef, dateStr);
-  if (v) {
-    return {
-      ...shiftDef,
-      time: v.time || shiftDef.time,
-      blocks: v.blocks || shiftDef.blocks,
-      activeVariantId: v.id,
-    };
+  const base = v
+    ? { ...shiftDef, time: v.time || shiftDef.time, blocks: v.blocks || shiftDef.blocks, activeVariantId: v.id }
+    : { ...shiftDef, activeVariantId: null };
+
+  const ct = customTimes[dateStr];
+  if (ct) {
+    const [h, m] = ct.split(':').map(Number);
+    const ap = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    const ctLabel = `${h12}:${String(m).padStart(2, '0')} ${ap}`;
+    const endMatch = base.time && base.time.match(/[–\-]\s*(.+)$/);
+    base.time = ctLabel + (endMatch ? ` – ${endMatch[1].trim()}` : '');
+    base.customTime = ct;
   }
-  return { ...shiftDef, activeVariantId: null };
+  return base;
 }
+const saveCustomTimes = () => localStorage.setItem(CUSTOM_TIMES_KEY, JSON.stringify(customTimes));
 const saveDone = () => localStorage.setItem(DONE_KEY, JSON.stringify(done));
 const saveNotes = () => localStorage.setItem(NOTES_KEY, JSON.stringify(dayNotes));
 const saveShiftDefs = () => localStorage.setItem(SHIFTDEF_KEY, JSON.stringify(SHIFTS));
@@ -4357,14 +4393,16 @@ $('patEnd').addEventListener('change', updatePatternInfo);
 $('onboardStart').addEventListener('click', finishOnboarding);
 
 /* ─────────────────────────────────────── QUICK PICKER */
-let qpActiveDate = null;
-let qpPendingSid  = null;   // chosen shift, not yet saved
-let qpPendingVid  = null;   // chosen variant, not yet saved
+let qpActiveDate      = null;
+let qpPendingSid      = null;   // chosen shift, not yet saved
+let qpPendingVid      = null;   // chosen variant, not yet saved
+let qpPendingCustomTime = null; // HH:MM override, not yet saved
 
 function showQuickPicker(dateStr, cellEl) {
-  qpActiveDate  = dateStr;
-  qpPendingSid  = shiftAssignments[dateStr] || null;
-  qpPendingVid  = variantAssignments[dateStr] || null;
+  qpActiveDate        = dateStr;
+  qpPendingSid        = shiftAssignments[dateStr] || null;
+  qpPendingVid        = variantAssignments[dateStr] || null;
+  qpPendingCustomTime = customTimes[dateStr] || null;
 
   const d = new Date(dateStr + 'T00:00:00');
   $('qpDate').textContent = `${dayShort[d.getDay()]} · ${monthNames[d.getMonth()]} ${d.getDate()}`;
@@ -4393,7 +4431,9 @@ function commitAndCloseQP() {
       delete shiftAssignments[qpActiveDate];
       delete variantAssignments[qpActiveDate];
     }
-    saveShiftAssignments(); saveVariantAssignments();
+    if (qpPendingCustomTime) customTimes[qpActiveDate] = qpPendingCustomTime;
+    else delete customTimes[qpActiveDate];
+    saveShiftAssignments(); saveVariantAssignments(); saveCustomTimes();
     renderMonth();
   }
   closeQuickPicker();
@@ -4402,7 +4442,8 @@ function commitAndCloseQP() {
 function closeQuickPicker() {
   $('quickPicker').style.display = 'none';
   $('qpOverlay').style.display  = 'none';
-  qpActiveDate = null; qpPendingSid = null; qpPendingVid = null;
+  $('qpTimeInput').style.display = 'none';
+  qpActiveDate = null; qpPendingSid = null; qpPendingVid = null; qpPendingCustomTime = null;
 }
 
 function renderQPShifts() {
@@ -4418,11 +4459,11 @@ function renderQPShifts() {
       const sid = btn.dataset.qps;
       qpPendingSid = sid || null;
       qpPendingVid = null;
+      qpPendingCustomTime = null;
       renderQPShifts();
       renderQPVariantSection();
-      // No variants on this shift → commit immediately
-      if (sid && !(SHIFTS[sid]?.variants?.length)) { commitAndCloseQP(); }
-      if (!sid) { commitAndCloseQP(); } // Clear
+      // No variants → don't auto-commit, let user optionally set custom time
+      if (!sid) { commitAndCloseQP(); } // Clear button → commit immediately
     });
   });
 }
@@ -4431,23 +4472,60 @@ function renderQPVariantSection() {
   const shiftDef = qpPendingSid ? SHIFTS[qpPendingSid] : null;
   const variants = shiftDef?.variants;
   const sec = $('qpVariantSection');
-  if (!variants || !variants.length) { sec.style.display = 'none'; return; }
 
-  sec.style.display = 'block';
-  $('qpVariants').innerHTML = variants.map(v => {
-    const on = v.id === qpPendingVid;
-    return `<button class="qp-vchip ${on ? 'on' : ''}" data-qpv="${v.id}"
-      style="color:${shiftDef.color};${on
-        ? `border-color:${shiftDef.color};background:${shiftDef.color}22;font-weight:800`
-        : ''}">${escapeHtml(v.label)}</button>`;
-  }).join('');
-
-  $('qpVariants').querySelectorAll('[data-qpv]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      qpPendingVid = btn.dataset.qpv;
-      commitAndCloseQP();
+  if (variants && variants.length) {
+    sec.style.display = 'block';
+    $('qpVariants').innerHTML = variants.map(v => {
+      const on = v.id === qpPendingVid;
+      return `<button class="qp-vchip ${on ? 'on' : ''}" data-qpv="${v.id}"
+        style="color:${shiftDef.color};${on
+          ? `border-color:${shiftDef.color};background:${shiftDef.color}22;font-weight:800`
+          : ''}">${escapeHtml(v.label)}</button>`;
+    }).join('');
+    $('qpVariants').querySelectorAll('[data-qpv]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        qpPendingVid = btn.dataset.qpv;
+        qpPendingCustomTime = null;
+        commitAndCloseQP();
+      });
     });
-  });
+  } else {
+    sec.style.display = 'none';
+  }
+
+  // Custom time button — always show when a shift is selected
+  const wrap = $('qpCustomTimeWrap');
+  const btn  = $('qpAddTimeBtn');
+  const inp  = $('qpTimeInput');
+  if (!qpPendingSid) { wrap.style.display = 'none'; return; }
+
+  wrap.style.display = 'block';
+  if (qpPendingCustomTime) {
+    btn.textContent = `⏰ ${formatTime(qpPendingCustomTime.replace(':','')
+      .padStart(4,'0').replace(/(\d{2})(\d{2})/, '$1:$2'))} — change`;
+    btn.classList.add('has-time');
+    inp.value = qpPendingCustomTime;
+  } else {
+    btn.textContent = '⏰ Set custom start time';
+    btn.classList.remove('has-time');
+    inp.value = '';
+  }
+  inp.style.display = 'none';
+
+  btn.onclick = () => {
+    inp.style.display = inp.style.display === 'none' ? 'block' : 'none';
+    if (inp.style.display === 'block') inp.focus();
+  };
+  inp.oninput = () => {
+    if (!inp.value) return;
+    qpPendingCustomTime = inp.value; // HH:MM
+    qpPendingVid = null;
+    const [h, m] = inp.value.split(':').map(Number);
+    const ap  = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    btn.textContent = `⏰ ${h12}:${String(m).padStart(2,'0')} ${ap} — change`;
+    btn.classList.add('has-time');
+  };
 }
 
 // Tapping outside applies whatever is pending
