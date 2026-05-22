@@ -1102,6 +1102,96 @@ input, textarea, select {
   text-align: center;
 }
 
+/* ═══ MONTHLY NOTES ═══ */
+.mn-item {
+  background: var(--sf); border: 1px solid var(--bd); border-radius: var(--r-md);
+  padding: 12px 14px; margin-bottom: 8px; display: flex; gap: 10px; align-items: flex-start;
+  box-shadow: var(--sh-sm);
+}
+.mn-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); flex-shrink: 0; margin-top: 4px; }
+.mn-body { flex: 1; min-width: 0; }
+.mn-date-lbl {
+  font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--c); margin-bottom: 4px;
+}
+.mn-text {
+  font-size: 13px; color: var(--tx); line-height: 1.5; word-break: break-word;
+}
+.mn-text-input {
+  width: 100%; background: transparent; border: none; color: var(--tx);
+  font-family: var(--sans); font-size: 13px; resize: none; outline: none;
+  line-height: 1.5; padding: 0; min-height: 18px;
+}
+.mn-text-input::placeholder { color: var(--tx3); }
+.mn-del {
+  background: transparent; border: none; color: var(--tx3); font-size: 16px;
+  cursor: pointer; padding: 2px 4px; flex-shrink: 0; transition: color .12s;
+}
+.mn-del:active { color: var(--rose); }
+.mn-date-pick {
+  background: var(--s2); border: 1px solid var(--bd); border-radius: 6px;
+  color: var(--tx2); font-family: var(--mono); font-size: 10px; padding: 3px 7px;
+  outline: none; cursor: pointer; margin-bottom: 6px;
+}
+.mn-date-pick:focus { border-color: var(--c); }
+.mn-empty { text-align: center; padding: 14px; color: var(--tx3); font-size: 12px; }
+
+/* ═══ BULK INLINE CUSTOM TIME ═══ */
+.bulk-custom-panel {
+  border-top: 1px solid rgba(255,255,255,.15);
+  padding-top: 10px; margin-top: 4px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.bulk-custom-selected {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  color: #fff; letter-spacing: .06em; text-transform: uppercase;
+}
+.bulk-custom-time-btn {
+  width: 100%; background: rgba(255,255,255,.12);
+  border: 1.5px dashed rgba(255,255,255,.3);
+  border-radius: var(--r-sm); padding: 9px 12px;
+  color: rgba(255,255,255,.85); font-family: var(--mono); font-size: 10px;
+  letter-spacing: .08em; text-transform: uppercase; font-weight: 600;
+  cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: all .15s;
+}
+.bulk-custom-time-btn.has-time {
+  border-style: solid; border-color: rgba(255,255,255,.6);
+  background: rgba(255,255,255,.2); color: #fff;
+}
+.bulk-custom-time-input {
+  width: 100%; background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: var(--r-sm); padding: 10px 12px;
+  color: #fff; font-family: var(--mono); font-size: 15px;
+  outline: none; -webkit-appearance: none; appearance: none;
+  touch-action: auto;
+}
+.bulk-custom-done {
+  width: 100%; background: rgba(255,255,255,.25);
+  border: 1.5px solid rgba(255,255,255,.4);
+  border-radius: var(--r-sm); padding: 11px 12px;
+  color: #fff; font-family: var(--mono); font-size: 11px;
+  letter-spacing: .08em; text-transform: uppercase; font-weight: 700;
+  cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  transition: all .15s;
+}
+.bulk-custom-done:active { background: rgba(255,255,255,.35); transform: scale(.98); }
+
+/* ═══ QP DONE BUTTON ═══ */
+.qp-done-btn {
+  width: 100%; margin-top: 10px;
+  background: var(--c-g); border: none;
+  border-radius: var(--r-sm); padding: 11px 12px;
+  color: #fff; font-family: var(--mono); font-size: 11px;
+  letter-spacing: .08em; text-transform: uppercase; font-weight: 700;
+  cursor: pointer; transition: all .15s;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 4px 12px rgba(59,130,246,.35);
+}
+
 </style>
 </head>
 <body>
@@ -1126,7 +1216,6 @@ input, textarea, select {
   </div>
 
   <div class="tool-row" id="toolRow">
-    <button class="tool-btn" id="btnQuickAdd"><span class="ic">➕</span> Quick Add</button>
     <button class="tool-btn" id="btnImport"><span class="ic">🗓</span> Schedule</button>
     <button class="tool-btn" id="btnSettings"><span class="ic">📋</span> Shifts</button>
     <button class="tool-btn" id="btnPrefs"><span class="ic">⚙</span> Settings</button>
@@ -1149,6 +1238,12 @@ input, textarea, select {
     </div>
 
     <div class="legend" id="legend"></div>
+
+    <div class="section-lbl" style="padding-top:16px">
+      <span>Monthly Notes</span>
+      <button class="lbl-act" id="addMonthlyNoteBtn">+ Add</button>
+    </div>
+    <div id="monthlyNotesList"></div>
   </div>
 
   <!-- TODAY PAGE -->
@@ -1166,70 +1261,12 @@ input, textarea, select {
 <div class="bulk-bar" id="bulkBar">
   <div class="bulk-bar-top">
     <span id="bulkCount">0 days selected</span>
-    <button class="bulk-bar-cancel" id="bulkCancel">Cancel</button>
+    <div style="display:flex;gap:6px">
+      <button class="bulk-bar-cancel" id="bulkDone">Done</button>
+      <button class="bulk-bar-cancel" id="bulkCancel">Cancel</button>
+    </div>
   </div>
   <div class="bulk-shift-row" id="bulkShifts"></div>
-</div>
-
-<!-- QUICK ADD MODAL -->
-<div class="modal-bg" id="quickAddBg">
-  <div class="modal">
-    <div class="modal-hd">
-      <div class="modal-title">Quick Schedule Entry</div>
-      <button class="modal-close" id="quickAddClose">×</button>
-    </div>
-
-    <div class="field">
-      <div class="field-lbl">Shift starts at</div>
-      <input type="time" class="field-input" id="qaStartTime" value="09:00">
-    </div>
-
-    <div class="field-row">
-      <div class="field">
-        <div class="field-lbl">Shift length</div>
-        <select class="qa-select" id="qaHours">
-          <option value="4">4 hours</option>
-          <option value="5">5 hours</option>
-          <option value="6">6 hours</option>
-          <option value="7">7 hours</option>
-          <option value="8" selected>8 hours</option>
-          <option value="9">9 hours</option>
-          <option value="10">10 hours</option>
-          <option value="12">12 hours</option>
-        </select>
-      </div>
-      <div class="field">
-        <div class="field-lbl">Commute time</div>
-        <select class="qa-select" id="qaCommute">
-          <option value="0">No commute</option>
-          <option value="10">10 min</option>
-          <option value="15">15 min</option>
-          <option value="20">20 min</option>
-          <option value="30" selected>30 min</option>
-          <option value="45">45 min</option>
-          <option value="60">1 hour</option>
-          <option value="90">1.5 hours</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="field">
-      <div class="field-lbl">Your day preview</div>
-      <div class="qa-preview" id="qaPreview"></div>
-    </div>
-
-    <div class="field">
-      <div class="field-lbl">Select days to apply</div>
-      <div class="qa-dow-row" id="qaDowRow"></div>
-      <div class="qa-day-grid" id="qaDayGrid"></div>
-      <div class="qa-sel-count" id="qaSelCount">No days selected</div>
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn-secondary" id="quickAddCancel">Cancel</button>
-      <button class="btn-primary" id="quickAddSave">Add to Calendar</button>
-    </div>
-  </div>
 </div>
 
 <!-- QUICK PICKER POPUP -->
@@ -1246,6 +1283,7 @@ input, textarea, select {
     <button class="qp-add-time-btn" id="qpAddTimeBtn">⏰ Set custom start time</button>
     <input type="time" class="qp-time-input" id="qpTimeInput" style="display:none">
   </div>
+  <button class="qp-done-btn" id="qpDoneBtn" style="display:none">Done</button>
 </div>
 
 <!-- DAY SHEET -->
@@ -1617,6 +1655,7 @@ const ONBOARD_KEY = 'planner_onboarded_v2';
 const PREFS_KEY   = 'planner_prefs_v2';
 const SCANNAME_KEY = 'planner_scanname_v2';
 const CUSTOM_TIMES_KEY = 'planner_custom_times_v2';
+const MONTHLY_NOTES_KEY = 'planner_monthly_notes_v2';
 
 const CC = {
   wake:  '#fbbf24',  // amber
@@ -1882,6 +1921,8 @@ let customTimes = JSON.parse(localStorage.getItem(CUSTOM_TIMES_KEY) || '{}');
 let variantAssignments = JSON.parse(localStorage.getItem(VARIANTS_KEY) || '{}');
 let done = JSON.parse(localStorage.getItem(DONE_KEY) || '{}');
 let dayNotes = JSON.parse(localStorage.getItem(NOTES_KEY) || '{}');
+// monthlyNotes: { "YYYY-MM": [{ id, text, date }] }
+let monthlyNotes = JSON.parse(localStorage.getItem(MONTHLY_NOTES_KEY) || '{}');
 let prefs = Object.assign(
   { theme:'dark', home:'month' },
   JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')
@@ -1897,6 +1938,7 @@ let bulkSelected = new Set();
 // double-tap quick picker
 let lastCellTap = {};
 let cellTapTimer = null;
+let qpBulkMode = false;
 
 // shift editor state
 let editingShiftId = null;
@@ -1947,6 +1989,7 @@ function getEffectiveShift(shiftDef, dateStr) {
 const saveCustomTimes = () => localStorage.setItem(CUSTOM_TIMES_KEY, JSON.stringify(customTimes));
 const saveDone = () => localStorage.setItem(DONE_KEY, JSON.stringify(done));
 const saveNotes = () => localStorage.setItem(NOTES_KEY, JSON.stringify(dayNotes));
+const saveMonthlyNotes = () => localStorage.setItem(MONTHLY_NOTES_KEY, JSON.stringify(monthlyNotes));
 const saveShiftDefs = () => localStorage.setItem(SHIFTDEF_KEY, JSON.stringify(SHIFTS));
 const savePrefs = () => localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
 function applyTheme() { document.documentElement.setAttribute('data-theme', prefs.theme); }
@@ -2073,7 +2116,11 @@ function renderMonth() {
       : '';
     const dots = [...new Set(dayEvents.map(e => e.cat))].slice(0, 4)
       .map(cat => `<span class="dot" style="background:${catOf(cat).color}"></span>`).join('');
-    const noteMark = dayNotes[dateStr] && !dots && !startTimeLabel ? '<div class="cell-note-mark"></div>' : '';
+    // Check if any monthly note targets this date
+    const monthKey = `${y}-${String(m+1).padStart(2,'0')}`;
+    const mnNotes = monthlyNotes[monthKey] || [];
+    const hasMonthlyNoteDot = mnNotes.some(n => n.date === dateStr);
+    const noteMark = (dayNotes[dateStr] || hasMonthlyNoteDot) && !dots && !startTimeLabel ? '<div class="cell-note-mark"></div>' : '';
     const isBulk = bulkMode && bulkSelected.has(dateStr);
     grid.insertAdjacentHTML('beforeend', `
       <div class="cell ${isToday ? 'today' : ''} ${isBulk ? 'bulk-selected' : ''}" data-date="${dateStr}">
@@ -2129,6 +2176,7 @@ function renderMonth() {
   $('totalEvents').textContent = monthEventCount;
   $('freeDays').textContent = daysInMonth - busyDates.size;
   renderLegend();
+  renderMonthlyNotes();
 }
 
 function renderLegend() {
@@ -2138,6 +2186,108 @@ function renderLegend() {
       ${s.short}
     </div>
   `).join('');
+}
+
+/* ─────────────────────────────────────── MONTHLY NOTES */
+function renderMonthlyNotes() {
+  const y = viewDate.getFullYear();
+  const m = viewDate.getMonth();
+  const monthKey = `${y}-${String(m+1).padStart(2,'0')}`;
+  const notes = monthlyNotes[monthKey] || [];
+  const container = $('monthlyNotesList');
+  if (!container) return;
+
+  if (!notes.length) {
+    container.innerHTML = `<div class="mn-empty">No notes for this month. Tap + Add to add one.</div>`;
+  } else {
+    container.innerHTML = notes.map((n, i) => {
+      const dateLbl = n.date ? (() => {
+        const dd = new Date(n.date + 'T00:00:00');
+        return `${dayShort[dd.getDay()]} · ${monthNames[dd.getMonth()]} ${dd.getDate()}`;
+      })() : '';
+      return `
+        <div class="mn-item" data-mn-idx="${i}">
+          <div class="mn-dot" style="background:${n.date ? 'var(--c)' : 'var(--tx3)'}"></div>
+          <div class="mn-body">
+            ${dateLbl ? `<div class="mn-date-lbl">${dateLbl}</div>` : ''}
+            <textarea class="mn-text-input" data-mn-text="${i}" rows="1"
+              placeholder="Note text..."
+              oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${escapeHtml(n.text || '')}</textarea>
+            <input type="date" class="mn-date-pick" data-mn-date="${i}"
+              value="${n.date || ''}" title="Pin to date (shows as dot on calendar)">
+          </div>
+          <button class="mn-del" data-mn-del="${i}">×</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Bind events
+  container.querySelectorAll('[data-mn-text]').forEach(ta => {
+    const idx = +ta.dataset.mnText;
+    ta.style.height = 'auto';
+    ta.style.height = ta.scrollHeight + 'px';
+    let timer;
+    ta.addEventListener('input', () => {
+      ta.style.height = 'auto';
+      ta.style.height = ta.scrollHeight + 'px';
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        const notes = monthlyNotes[monthKey] || [];
+        if (notes[idx]) {
+          notes[idx].text = ta.value;
+          monthlyNotes[monthKey] = notes;
+          saveMonthlyNotes();
+        }
+      }, 300);
+    });
+  });
+
+  container.querySelectorAll('[data-mn-date]').forEach(inp => {
+    const idx = +inp.dataset.mnDate;
+    inp.addEventListener('change', () => {
+      const notes = monthlyNotes[monthKey] || [];
+      if (notes[idx]) {
+        notes[idx].date = inp.value || null;
+        monthlyNotes[monthKey] = notes;
+        saveMonthlyNotes();
+        renderMonthlyNotes();
+        // Re-render calendar to update dots
+        const grid = $('calGrid');
+        if (grid) renderMonth();
+      }
+    });
+  });
+
+  container.querySelectorAll('[data-mn-del]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = +btn.dataset.mnDel;
+      const notes = monthlyNotes[monthKey] || [];
+      notes.splice(idx, 1);
+      monthlyNotes[monthKey] = notes;
+      saveMonthlyNotes();
+      renderMonthlyNotes();
+      // re-render calendar dots
+      renderMonth();
+    });
+  });
+}
+
+function addMonthlyNote() {
+  const y = viewDate.getFullYear();
+  const m = viewDate.getMonth();
+  const monthKey = `${y}-${String(m+1).padStart(2,'0')}`;
+  if (!monthlyNotes[monthKey]) monthlyNotes[monthKey] = [];
+  monthlyNotes[monthKey].push({ id: Math.random().toString(36).slice(2,10), text: '', date: null });
+  saveMonthlyNotes();
+  renderMonthlyNotes();
+  // Focus the new textarea
+  const container = $('monthlyNotesList');
+  if (container) {
+    const inputs = container.querySelectorAll('.mn-text-input');
+    const last = inputs[inputs.length - 1];
+    if (last) { last.focus(); }
+  }
 }
 
 /* ─────────────────────────────────────── BULK MODE */
@@ -2156,6 +2306,8 @@ function exitBulkMode() {
   $('bulkBar').classList.remove('on');
   const vr = $('bulkVariantRow');
   if (vr) vr.remove();
+  const cp = $('bulkCustomPanel');
+  if (cp) cp.remove();
   refreshActiveView();
 }
 function refreshActiveView() {
@@ -2197,22 +2349,73 @@ function renderBulkShifts() {
   const row = $('bulkShifts');
   const existing = $('bulkVariantRow');
   if (existing) existing.remove();
+  const panel = $('bulkCustomPanel');
+  if (panel) panel.remove();
   row.innerHTML = Object.entries(SHIFTS).map(([id, s]) =>
     `<button class="bulk-chip" data-bulk-shift="${id}">${s.emoji} ${s.short}</button>`
-  ).join('') + `<button class="bulk-chip clear-chip" data-bulk-shift="">Clear</button>`;
+  ).join('') +
+    `<button class="bulk-chip clear-chip" data-bulk-shift="">Clear</button>`;
   row.querySelectorAll('[data-bulk-shift]').forEach(btn => {
     btn.addEventListener('click', () => {
       const sid = btn.dataset.bulkShift;
       if (!sid) { applyBulkShift('', null); exitBulkMode(); return; }
-      const shiftDef = SHIFTS[sid];
-      if (shiftDef && shiftDef.variants && shiftDef.variants.length) {
-        applyBulkShift(sid, null);
-        showBulkVariants(sid, shiftDef);
-      } else {
-        applyBulkShift(sid, null);
-        exitBulkMode();
-      }
+      showBulkCustomTime(sid);
     });
+  });
+}
+
+function showBulkCustomTime(sid) {
+  const shiftDef = SHIFTS[sid];
+  const existing = $('bulkCustomPanel');
+  if (existing) existing.remove();
+
+  const panel = document.createElement('div');
+  panel.id = 'bulkCustomPanel';
+  panel.className = 'bulk-custom-panel';
+  panel.innerHTML = `
+    <div class="bulk-custom-selected">
+      <span style="font-size:15px">${shiftDef.emoji}</span>
+      <span>${shiftDef.name}</span>
+    </div>
+    <button class="bulk-custom-time-btn" id="bulkCustomTimeBtn">⏰ Set custom start time</button>
+    <input type="time" class="bulk-custom-time-input" id="bulkCustomTimeInput" style="display:none">
+    <button class="bulk-custom-done" id="bulkCustomDone">Done</button>
+  `;
+  $('bulkBar').appendChild(panel);
+
+  let customTime = null;
+  const timeBtn = $('bulkCustomTimeBtn');
+  const timeInp = $('bulkCustomTimeInput');
+
+  timeBtn.addEventListener('click', () => {
+    const showing = timeInp.style.display !== 'none';
+    timeInp.style.display = showing ? 'none' : 'block';
+    if (!showing) timeInp.focus();
+  });
+
+  timeInp.addEventListener('input', () => {
+    customTime = timeInp.value || null;
+    if (customTime) {
+      const parts = customTime.split(':');
+      let h = parseInt(parts[0]), m = parseInt(parts[1]);
+      const ap = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      timeBtn.textContent = `⏰ ${h}:${String(m).padStart(2,'0')} ${ap} — change`;
+      timeBtn.classList.add('has-time');
+    } else {
+      timeBtn.textContent = '⏰ Set custom start time';
+      timeBtn.classList.remove('has-time');
+    }
+  });
+
+  $('bulkCustomDone').addEventListener('click', () => {
+    applyBulkShift(sid, null);
+    if (customTime) {
+      bulkSelected.forEach(ds => { customTimes[ds] = customTime; });
+      saveCustomTimes();
+    }
+    exitBulkMode();
+    renderMonth();
   });
 }
 function updateBulkBar() {
@@ -4399,6 +4602,7 @@ let qpPendingVid      = null;   // chosen variant, not yet saved
 let qpPendingCustomTime = null; // HH:MM override, not yet saved
 
 function showQuickPicker(dateStr, cellEl) {
+  qpBulkMode          = false;
   qpActiveDate        = dateStr;
   qpPendingSid        = shiftAssignments[dateStr] || null;
   qpPendingVid        = variantAssignments[dateStr] || null;
@@ -4409,6 +4613,9 @@ function showQuickPicker(dateStr, cellEl) {
 
   renderQPShifts();
   renderQPVariantSection();
+  // Show Done if a shift is already assigned
+  $('qpDoneBtn').style.display = qpPendingSid ? 'block' : 'none';
+  $('qpDoneBtn').onclick = commitAndCloseQP;
 
   const popup = $('quickPicker');
   const pw    = Math.min(280, window.innerWidth - 16);
@@ -4421,7 +4628,50 @@ function showQuickPicker(dateStr, cellEl) {
   $('qpOverlay').style.display = 'block';
 }
 
+function showBulkQuickPicker(sid) {
+  qpBulkMode          = true;
+  qpActiveDate        = null;
+  qpPendingSid        = sid;
+  qpPendingVid        = null;
+  qpPendingCustomTime = null;
+
+  const count = bulkSelected.size;
+  $('qpDate').textContent = `${count} day${count === 1 ? '' : 's'} selected`;
+
+  renderQPShifts();
+  renderQPVariantSection();
+  $('qpDoneBtn').style.display = 'block';
+  $('qpDoneBtn').onclick = commitAndCloseQP;
+
+  const popup = $('quickPicker');
+  const pw    = Math.min(280, window.innerWidth - 16);
+  const bulkBar = $('bulkBar');
+  const rect  = bulkBar.getBoundingClientRect();
+  let left    = window.innerWidth / 2 - pw / 2;
+  let top     = rect.top - 20;
+  left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+  if (top - 300 < 0) top = rect.top - 20;
+  popup.style.cssText = `display:block;left:${left}px;top:${Math.max(8, top - 260)}px;width:${pw}px`;
+  $('qpOverlay').style.display = 'block';
+}
+
 function commitAndCloseQP() {
+  if (qpBulkMode) {
+    if (qpPendingSid) {
+      bulkSelected.forEach(ds => {
+        shiftAssignments[ds] = qpPendingSid;
+        if (qpPendingVid) variantAssignments[ds] = qpPendingVid;
+        else delete variantAssignments[ds];
+        if (qpPendingCustomTime) customTimes[ds] = qpPendingCustomTime;
+        else delete customTimes[ds];
+      });
+      saveShiftAssignments(); saveVariantAssignments(); saveCustomTimes();
+    }
+    closeQuickPicker();
+    exitBulkMode();
+    renderMonth();
+    return;
+  }
   if (qpActiveDate) {
     if (qpPendingSid) {
       shiftAssignments[qpActiveDate] = qpPendingSid;
@@ -4444,6 +4694,7 @@ function closeQuickPicker() {
   $('qpOverlay').style.display  = 'none';
   $('qpTimeInput').style.display = 'none';
   qpActiveDate = null; qpPendingSid = null; qpPendingVid = null; qpPendingCustomTime = null;
+  qpBulkMode = false;
 }
 
 function renderQPShifts() {
@@ -4462,8 +4713,9 @@ function renderQPShifts() {
       qpPendingCustomTime = null;
       renderQPShifts();
       renderQPVariantSection();
-      // No variants → don't auto-commit, let user optionally set custom time
-      if (!sid) { commitAndCloseQP(); } // Clear button → commit immediately
+      if (!sid) { commitAndCloseQP(); return; } // Clear → commit immediately
+      // Show Done button once a shift is selected
+      $('qpDoneBtn').style.display = 'block';
     });
   });
 }
@@ -4486,7 +4738,11 @@ function renderQPVariantSection() {
       btn.addEventListener('click', () => {
         qpPendingVid = btn.dataset.qpv;
         qpPendingCustomTime = null;
-        commitAndCloseQP();
+        if (qpBulkMode) {
+          renderQPVariantSection(); // just update selection highlight, let user click Done
+        } else {
+          commitAndCloseQP();
+        }
       });
     });
   } else {
@@ -4531,143 +4787,16 @@ function renderQPVariantSection() {
 // Tapping outside applies whatever is pending
 $('qpOverlay').addEventListener('click', commitAndCloseQP);
 
-/* ─────────────────────────────────────── QUICK ADD */
-let qaSelectedDays = new Set();
+/* ─────────────────────────────────────── MONTHLY NOTES BUTTON */
+document.addEventListener('click', (e) => {
+  if (e.target && e.target.id === 'addMonthlyNoteBtn') addMonthlyNote();
+});
 
-function fmtHHMM(totalMin) {
-  const h = Math.floor(((totalMin % 1440) + 1440) % 1440 / 60);
-  const m = ((totalMin % 1440) + 1440) % 1440 % 60;
-  const ap = h >= 12 ? 'PM' : 'AM';
-  const h12 = h % 12 || 12;
-  return `${h12}:${String(m).padStart(2,'0')} ${ap}`;
-}
-
-function updateQAPreview() {
-  const [sh, sm] = ($('qaStartTime').value || '09:00').split(':').map(Number);
-  const startMin = sh * 60 + sm;
-  const durationMin = parseInt($('qaHours').value) * 60;
-  const commuteMin = parseInt($('qaCommute').value);
-
-  const endMin    = startMin + durationMin;
-  const leaveMin  = startMin - commuteMin;
-  const wakeMin   = leaveMin - 30;  // 30 min to get ready
-  const homeMin   = endMin + commuteMin;
-  const dinnerMin = homeMin + 30;
-  const sleepMin  = Math.max(endMin + commuteMin + 90, 22 * 60); // at least 10 PM
-
-  const rows = [
-    { ic: '⏰', label: 'Wake Up + Get Ready', t: wakeMin },
-  ];
-  if (commuteMin > 0) rows.push({ ic: '🚗', label: 'Leave for Work', t: leaveMin });
-  rows.push({ ic: '💼', label: `Work  (${$('qaHours').value} hrs)`, t: startMin, t2: endMin });
-  if (commuteMin > 0) rows.push({ ic: '🚗', label: 'Drive Home', t: endMin });
-  rows.push({ ic: '🍽', label: 'Dinner', t: dinnerMin });
-  rows.push({ ic: '🌙', label: 'Wind Down → Sleep', t: sleepMin });
-
-  $('qaPreview').innerHTML = rows.map(r => `
-    <div class="qa-preview-row">
-      <span class="qa-preview-time">${fmtHHMM(r.t)}${r.t2 !== undefined ? ' – ' + fmtHHMM(r.t2) : ''}</span>
-      <span>${r.ic} ${r.label}</span>
-    </div>`).join('');
-}
-
-function renderQADayGrid() {
-  const y = viewDate.getFullYear();
-  const m = viewDate.getMonth();
-  const daysInMonth = new Date(y, m + 1, 0).getDate();
-  const firstDow = new Date(y, m, 1).getDay();
-  const dowLabels = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-
-  $('qaDowRow').innerHTML = dowLabels.map(d => `<div class="qa-dow">${d}</div>`).join('');
-
-  let html = '';
-  for (let i = 0; i < firstDow; i++) html += '<div class="qa-day empty"></div>';
-  for (let d = 1; d <= daysInMonth; d++) {
-    const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dow = dowLabels[new Date(y, m, d).getDay()];
-    const on = qaSelectedDays.has(ds) ? 'on' : '';
-    html += `<div class="qa-day ${on}" data-qadate="${ds}"><span class="qa-d">${dow}</span>${d}</div>`;
-  }
-  $('qaDayGrid').innerHTML = html;
-
-  $('qaDayGrid').querySelectorAll('.qa-day:not(.empty)').forEach(el => {
-    el.addEventListener('click', () => {
-      const ds = el.dataset.qadate;
-      if (qaSelectedDays.has(ds)) qaSelectedDays.delete(ds);
-      else qaSelectedDays.add(ds);
-      el.classList.toggle('on');
-      updateQASelCount();
-    });
-  });
-  updateQASelCount();
-}
-
-function updateQASelCount() {
-  const n = qaSelectedDays.size;
-  $('qaSelCount').textContent = n === 0 ? 'No days selected' : `${n} day${n > 1 ? 's' : ''} selected`;
-}
-
-function openQuickAdd() {
-  qaSelectedDays.clear();
-  // Pre-fill bulk-selected days if any
-  if (bulkMode && bulkSelected.size) {
-    bulkSelected.forEach(d => qaSelectedDays.add(d));
-  }
-  $('quickAddBg').classList.add('on');
-  updateQAPreview();
-  renderQADayGrid();
-}
-
-function closeQuickAdd() {
-  $('quickAddBg').classList.remove('on');
-}
-
-function applyQuickAdd() {
-  if (!qaSelectedDays.size) {
-    alert('Please select at least one day on the calendar.');
-    return;
-  }
-  const [sh, sm] = ($('qaStartTime').value || '09:00').split(':').map(Number);
-  const durationMin = parseInt($('qaHours').value) * 60;
-  const commuteMin  = parseInt($('qaCommute').value);
-  const endTotalMin = sh * 60 + sm + durationMin;
-  const endH = Math.floor(endTotalMin / 60) % 24;
-  const endM = endTotalMin % 60;
-
-  const timeLabel = buildTimeLabel(
-    `${String(sh).padStart(2,'0')}:${String(sm).padStart(2,'0')}`,
-    `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`
-  );
-
-  // Try to match an existing shift (within 30 min), otherwise create new
-  const sid = matchOrCreateShift(timeLabel, '');
-  if (!sid) return;
-
-  // If auto-created, commit it to SHIFTS now
-  if (autoCreatedShifts[sid]) {
-    const { _timeKey, _isAuto, ...clean } = autoCreatedShifts[sid];
-    SHIFTS[sid] = clean;
-    delete autoCreatedShifts[sid];
-    saveShiftDefs();
-  }
-
-  // Assign to all selected days
-  qaSelectedDays.forEach(ds => { shiftAssignments[ds] = sid; });
-  saveShiftAssignments();
-
-  // Exit bulk mode if active, re-render
-  if (bulkMode) exitBulkMode();
-  else renderMonth();
-
-  closeQuickAdd();
-}
-
-$('btnQuickAdd').addEventListener('click', openQuickAdd);
-$('quickAddClose').addEventListener('click', closeQuickAdd);
-$('quickAddCancel').addEventListener('click', closeQuickAdd);
-$('quickAddSave').addEventListener('click', applyQuickAdd);
-$('quickAddBg').addEventListener('click', e => { if (e.target === $('quickAddBg')) closeQuickAdd(); });
-['qaStartTime','qaHours','qaCommute'].forEach(id => $('qaStartTime') && $(id).addEventListener('change', updateQAPreview));
+/* ─────────────────────────────────────── BULK DONE BUTTON */
+$('bulkDone').addEventListener('click', () => {
+  exitBulkMode();
+  refreshActiveView();
+});
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/service-worker.js')
